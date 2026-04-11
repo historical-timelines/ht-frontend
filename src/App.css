@@ -134,10 +134,8 @@
 
 .tick--axis-mark .tick-label {
   font-size: 0.65rem;
-  max-width: 4.25rem;
-  line-height: 1.15;
+  white-space: nowrap;
   text-align: center;
-  white-space: normal;
 }
 
 .track-wrap {

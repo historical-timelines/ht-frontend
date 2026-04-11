@@ -107,11 +107,11 @@ function mergeAxisMarks(
 ): { t: number; label: string }[] {
   const raw: { t: number; label: string }[] = [];
   for (const p of periods) {
-    raw.push({ t: p.start.getTime(), label: formatDate(p.start) });
-    raw.push({ t: p.end.getTime(), label: formatDate(p.end) });
+    raw.push({ t: p.start.getTime(), label: formatShortDate(p.start) });
+    raw.push({ t: p.end.getTime(), label: formatShortDate(p.end) });
   }
   for (const e of events) {
-    raw.push({ t: e.date.getTime(), label: formatDate(e.date) });
+    raw.push({ t: e.date.getTime(), label: formatShortDate(e.date) });
   }
   raw.sort((a, b) => a.t - b.t);
   const out: { t: number; label: string }[] = [];
