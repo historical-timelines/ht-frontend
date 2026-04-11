@@ -29,6 +29,30 @@ function pct(time: number, min: number, max: number): number {
   return ((time - min) / (max - min)) * 100;
 }
 
+/** Texto legible sobre un fondo en hex (#rgb o #rrggbb). */
+function foregroundForHex(hex: string): string {
+  const raw = hex.trim().replace(/^#/, "");
+  if (raw.length !== 3 && raw.length !== 6) return "var(--text)";
+  const full =
+    raw.length === 3
+      ? raw
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : raw;
+  const n = Number.parseInt(full, 16);
+  if (Number.isNaN(n)) return "var(--text)";
+  const r = (n >> 16) & 0xff;
+  const g = (n >> 8) & 0xff;
+  const b = n & 0xff;
+  const lin = [r, g, b].map((c) => {
+    const x = c / 255;
+    return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+  });
+  const L = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+  return L > 0.45 ? "#1a1d21" : "#ffffff";
+}
+
 /** Debe coincidir con altura de `.row-bar` y `margin-bottom` de `.period-row` en App.css */
 const ROW_BAR_REM = 2.25;
 const ROW_MARGIN_REM = 0.1;
@@ -197,6 +221,7 @@ export default function App() {
                     style={{
                       left: `${startLeft}%`,
                       height: h,
+                      borderLeftColor: p.color,
                     }}
                   />,
                   <div
@@ -205,6 +230,7 @@ export default function App() {
                     style={{
                       left: `${endLeft}%`,
                       height: h,
+                      borderLeftColor: p.color,
                     }}
                   />,
                 ];
@@ -229,13 +255,21 @@ export default function App() {
                       pct(p.end.getTime(), min, max) - left,
                       0.8
                     );
-                    const hue = i % 2 === 0 ? "period-a" : "period-b";
+                    const isActive = sel?.kind === "period" && sel.item === p;
                     return (
                       <button
                         key={p.title}
                         type="button"
-                        className={`bar ${hue} ${sel?.kind === "period" && sel.item === p ? "active" : ""}`}
-                        style={{ left: `${left}%`, width: `${width}%` }}
+                        className={`bar ${isActive ? "active" : ""}`}
+                        style={{
+                          left: `${left}%`,
+                          width: `${width}%`,
+                          backgroundColor: p.color,
+                          color: foregroundForHex(p.color),
+                          boxShadow: isActive
+                            ? `0 0 0 2px ${p.color}`
+                            : undefined,
+                        }}
                         onClick={() => setSel({ kind: "period", item: p })}
                         title={`${formatDate(p.start)} — ${formatDate(p.end)}`}
                       >
@@ -272,7 +306,32 @@ export default function App() {
 
       <div className="app-lower">
         <section className="legend">
-          <h2 className="legend-title">Eventos</h2>
+          <h2 className="legend-title">Períodos</h2>
+          <ul className="period-list">
+            {periods.map((p) => (
+              <li key={p.title}>
+                <button
+                  type="button"
+                  className="linkish period-link"
+                  onClick={() => setSel({ kind: "period", item: p })}
+                >
+                  <span
+                    className="period-swatch"
+                    style={{ backgroundColor: p.color }}
+                    aria-hidden
+                  />
+                  <span>
+                    <strong>{p.title}</strong>
+                    <span className="muted">
+                      {" "}
+                      · {formatDate(p.start)} — {formatDate(p.end)}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <h2 className="legend-title legend-title--second">Eventos</h2>
           <ul className="event-list">
             {events.map((e) => (
               <li key={e.title + e.date.toISOString()}>
@@ -289,7 +348,15 @@ export default function App() {
           </ul>
         </section>
 
-        <aside className="detail" aria-live="polite">
+        <aside
+          className="detail"
+          aria-live="polite"
+          style={
+            sel?.kind === "period"
+              ? { boxShadow: `inset 4px 0 0 0 ${sel.item.color}` }
+              : undefined
+          }
+        >
           {sel == null ? (
             <p className="detail-placeholder">
               Elegí un período en la barra o un evento en la lista o en la línea.

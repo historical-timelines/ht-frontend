@@ -13,6 +13,7 @@ export interface Period extends Linked {
     start: Date;
     end: Date;
     description: string;
+    color: string;
 }
 
 export interface Timeline {
