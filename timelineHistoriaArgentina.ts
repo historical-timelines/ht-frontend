@@ -111,6 +111,17 @@ export const timelineHistoriaArgentina: Timeline = {
             links: ["https://es.wikipedia.org/wiki/Juan_Manuel_de_Rosas"],
         },
         {
+            title: "Batalla de Caseros",
+            description: `
+                - Derrota de Rosas frente a las fuerzas de Urquiza.
+                - Fin del régimen rosista basado en la concentración del poder en Buenos Aires.
+                - Marca el cierre de una etapa de orden político sin organización nacional formal.
+                - Da inicio al proceso de organización constitucional del Estado argentino.
+            `,
+            date: utcDate(1852, 2, 3),
+            links: ["https://es.wikipedia.org/wiki/Batalla_de_Caseros"],
+        },
+        {
             title: "Constitución de 1853",
             description: `
                 - Define un marco con instituciones centralizadas y un Estado nacional.A
