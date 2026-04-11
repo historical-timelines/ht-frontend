@@ -21,9 +21,9 @@ export const timelineHistoriaArgentina: Timeline = {
             `
         },
         {
-            title: "Orden Rosista",
+            title: "1er. mandato de Rosas",
             start: utcDate(1829, 12, 8),
-            end: utcDate(1852, 4, 13),
+            end: utcDate(1832, 12, 17),
             description: `
                 - Gobierno de facto de Juan Manuel de Rosas.
                 - Centralización sin Estado nacional formal.
@@ -33,6 +33,21 @@ export const timelineHistoriaArgentina: Timeline = {
                 - Aislamiento y conflicto externo: bloqueos francés e inglés y conflictos regionales
                 - Depedencia en el liderazgo personal de Rosas
                 - Culmina con la derrota en la Batalla de Caseros
+            `,
+        },
+        {
+            title: "2do. mandato de Rosas",
+            start: utcDate(1835, 4, 13),
+            end: utcDate(1852, 2, 3),
+            description: `
+                - Inicio con la suma del poder público: concentración total del poder en Rosas.
+                - Régimen político autoritario con base en el control de Buenos Aires y la aduana.
+                - Federalismo formal, hegemonía porteña efectiva sobre las provincias.
+                - Uso sistemático de la coerción y persecución política (Mazorca).
+                - Control de relaciones exteriores en nombre de la Confederación.
+                - Conflictos internacionales: bloqueos francés y anglo-francés.
+                - Orden interno sostenido en liderazgo personal y disciplinamiento político.
+                - Culmina con la derrota en la Batalla de Caseros frente a Urquiza.
             `,
         }
     ],
@@ -72,6 +87,16 @@ export const timelineHistoriaArgentina: Timeline = {
                 - Reacción federal que culmina con la designación de Rosas en 1829.
             `,
             date: utcDate(1828, 12, 1),
+        },
+        {
+            title: "Fin del primer mandato de Rosas",
+            description: `
+                - Finaliza el gobierno de Rosas al vencer su mandato como gobernador de Buenos Aires.
+                - Rechaza continuar al no obtener la suma del poder público (facultades extraordinarias).
+                - Abre un período de inestabilidad política que refuerza su posición para el regreso en 1835.
+            `,
+            date: utcDate(1832, 12, 17),
+            links: ["https://es.wikipedia.org/wiki/Juan_Manuel_de_Rosas"],
         },
         {
             title: "Constitución de 1853",
