@@ -72,13 +72,26 @@
   box-sizing: border-box;
 }
 
+.timeline-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
 .timeline-stack {
   --timeline-axis-gap: 0.85rem;
+  /* Más ancho que el viewport: los ticks se separan y se recorre con scroll horizontal */
+  min-width: max(100%, min(4200px, 240vw));
 }
 
 .axis {
   position: relative;
-  min-height: 2.75rem;
+  /* Altura base + filas extra cuando las etiquetas del eje se apilan (--axis-max-lane desde App.tsx) */
+  min-height: calc(
+    2.75rem + var(--axis-max-lane, 0) * 1.12em
+  );
   margin-bottom: var(--timeline-axis-gap);
   border-bottom: none;
 }
@@ -106,6 +119,59 @@
   align-items: center;
 }
 
+/* Eje temporal: el trazo queda fijo sobre la barra; las etiquetas (años) suben en filas (--tick-lane). */
+.tick--axis-mark {
+  display: block;
+  width: 0;
+  height: 0;
+  overflow: visible;
+}
+
+.tick--axis-mark .tick-line {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+}
+
+.tick--axis-mark .tick-label {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  /* Borde inferior del texto por encima del trazo; más carril = más arriba (filas de años) */
+  bottom: calc(
+    var(--tick-line-h, 12px) + 4px + var(--tick-lane, 0) * 1.08em
+  );
+  margin-top: 0;
+  font-size: 0.65rem;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.tick--axis-mark.tick--start .tick-line {
+  left: 0;
+  transform: none;
+}
+
+.tick--axis-mark.tick--start .tick-label {
+  left: 0;
+  transform: none;
+  text-align: left;
+}
+
+.tick--axis-mark.tick--end .tick-line {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.tick--axis-mark.tick--end .tick-label {
+  left: auto;
+  right: 0;
+  transform: none;
+  text-align: right;
+}
+
 /* First/last at 0%/100% with -50% would clip labels past the chart edge */
 .tick--start {
   transform: translateX(0);
@@ -130,12 +196,6 @@
   color: var(--muted);
   margin-top: 4px;
   white-space: nowrap;
-}
-
-.tick--axis-mark .tick-label {
-  font-size: 0.65rem;
-  white-space: nowrap;
-  text-align: center;
 }
 
 .track-wrap {

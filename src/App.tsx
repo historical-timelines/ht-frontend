@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { timelineHistoriaArgentina } from "../timelineHistoriaArgentina";
 import type { Period, TimelineEvent } from "../types";
 import "./App.css";
@@ -128,6 +128,39 @@ function mergeAxisMarks(
   return out;
 }
 
+/** Separación mínima entre centros de etiquetas (% del ancho de la pista) para compartir la misma fila. */
+const AXIS_LABEL_MIN_GAP_PCT = 3.1;
+
+/**
+ * Cuando muchas fechas caen cerca en el eje, reparte etiquetas en filas verticales
+ * (lane 0 pegada al trazo, lane 1 más abajo, etc.).
+ */
+function assignAxisMarkLanes(
+  marks: { t: number; label: string }[],
+  min: number,
+  max: number
+): { mark: { t: number; label: string }; p: number; lane: number }[] {
+  const sorted = [...marks].sort(
+    (a, b) => pct(a.t, min, max) - pct(b.t, min, max)
+  );
+  const lastCenterInLane: number[] = [];
+
+  return sorted.map((mark) => {
+    const p = pct(mark.t, min, max);
+    let lane = 0;
+    for (;; lane++) {
+      if (lane >= lastCenterInLane.length) {
+        lastCenterInLane.push(p);
+        return { mark, p, lane };
+      }
+      if (p - lastCenterInLane[lane] >= AXIS_LABEL_MIN_GAP_PCT) {
+        lastCenterInLane[lane] = p;
+        return { mark, p, lane };
+      }
+    }
+  });
+}
+
 export default function App() {
   const { periods, events } = timelineHistoriaArgentina;
 
@@ -150,6 +183,17 @@ export default function App() {
   const axisMarks = useMemo(
     () => mergeAxisMarks(periods, events),
     [periods, events]
+  );
+
+  const axisMarksPlaced = useMemo(
+    () => assignAxisMarkLanes(axisMarks, min, max),
+    [axisMarks, min, max]
+  );
+
+  const axisMaxLane = useMemo(
+    () =>
+      axisMarksPlaced.reduce((m, x) => Math.max(m, x.lane), 0),
+    [axisMarksPlaced]
   );
 
   const { laneByIndex, periodIndicesByLane } = useMemo(() => {
@@ -178,126 +222,139 @@ export default function App() {
       </div>
 
       <section className="chart chart-bleed" aria-label="Línea de tiempo">
-        <div className="timeline-stack">
-          <div className="axis">
-            {axisMarks.map((mark, i) => {
-              const isFirst = i === 0;
-              const isLast = i === axisMarks.length - 1;
-              const p = pct(mark.t, min, max);
-              let edgeClass = "";
-              if (isFirst && isLast) {
-                if (p <= 6) edgeClass = "tick--start";
-                else if (p >= 94) edgeClass = "tick--end";
-              } else if (isFirst) {
-                edgeClass = "tick--start";
-              } else if (isLast) {
-                edgeClass = "tick--end";
+        <div className="timeline-scroll">
+          <div className="timeline-stack">
+            <div
+              className="axis"
+              style={
+                {
+                  "--axis-max-lane": axisMaxLane,
+                } as CSSProperties
               }
-              return (
-                <div
-                  key={`${mark.t}-${i}`}
-                  className={`tick tick--axis-mark ${edgeClass}`.trim()}
-                  style={{ left: `${p}%` }}
-                >
-                  <span className="tick-line" />
-                  <span className="tick-label">{mark.label}</span>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="track-wrap">
-            <div className="track-bg" />
-            <div className="period-connectors" aria-hidden>
-              {periods.flatMap((p, i) => {
-                const centerRem = periodRowCenterFromTopRem(laneByIndex[i]);
-                const h = `calc(var(--timeline-axis-gap) + ${centerRem}rem)`;
-                const startLeft = pct(p.start.getTime(), min, max);
-                const endLeft = pct(p.end.getTime(), min, max);
-                return [
+            >
+              {axisMarksPlaced.map(({ mark, p, lane }, i) => {
+                const isFirst = i === 0;
+                const isLast = i === axisMarksPlaced.length - 1;
+                let edgeClass = "";
+                if (isFirst && isLast) {
+                  if (p <= 6) edgeClass = "tick--start";
+                  else if (p >= 94) edgeClass = "tick--end";
+                } else if (isFirst) {
+                  edgeClass = "tick--start";
+                } else if (isLast) {
+                  edgeClass = "tick--end";
+                }
+                return (
                   <div
-                    key={`${p.title}-start-conn`}
-                    className="period-connector"
-                    style={{
-                      left: `${startLeft}%`,
-                      height: h,
-                      borderLeftColor: p.color,
-                    }}
-                  />,
-                  <div
-                    key={`${p.title}-end-conn`}
-                    className="period-connector"
-                    style={{
-                      left: `${endLeft}%`,
-                      height: h,
-                      borderLeftColor: p.color,
-                    }}
-                  />,
-                ];
+                    key={`${mark.t}-${i}`}
+                    className={`tick tick--axis-mark ${edgeClass}`.trim()}
+                    style={
+                      {
+                        left: `${p}%`,
+                        "--tick-lane": lane,
+                      } as CSSProperties
+                    }
+                  >
+                    <span className="tick-line" />
+                    <span className="tick-label">{mark.label}</span>
+                  </div>
+                );
               })}
             </div>
-            <div className="event-connectors" aria-hidden>
-              {eventsSorted.map((ev) => (
-                <div
-                  key={`conn-${ev.title + ev.date.toISOString()}`}
-                  className="event-connector"
-                  style={{ left: `${pct(ev.date.getTime(), min, max)}%` }}
-                />
-              ))}
-            </div>
-            {periodIndicesByLane.map((indices, lane) => (
-              <div key={`lane-${lane}`} className="period-row">
-                <div className="row-bar">
-                  {indices.map((i) => {
-                    const p = periods[i];
-                    const left = pct(p.start.getTime(), min, max);
-                    const width = Math.max(
-                      pct(p.end.getTime(), min, max) - left,
-                      0.8
-                    );
-                    const isActive = sel?.kind === "period" && sel.item === p;
-                    return (
-                      <button
-                        key={p.title}
-                        type="button"
-                        className={`bar ${isActive ? "active" : ""}`}
-                        style={{
-                          left: `${left}%`,
-                          width: `${width}%`,
-                          backgroundColor: p.color,
-                          color: foregroundForHex(p.color),
-                          boxShadow: isActive
-                            ? `0 0 0 2px ${p.color}`
-                            : undefined,
-                        }}
-                        onClick={() => setSel({ kind: "period", item: p })}
-                        title={`${formatDate(p.start)} — ${formatDate(p.end)}`}
-                      >
-                        <span className="bar-text">{p.title}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
 
-            <div className="events-row">
-              <div
-                className="row-bar"
-                role="group"
-                aria-label="Eventos en la línea temporal"
-              >
-                {events.map((e) => (
-                  <button
-                    key={e.title + e.date.toISOString()}
-                    type="button"
-                    className={`event-dot ${sel?.kind === "event" && sel.item === e ? "active" : ""}`}
-                    style={{ left: `${pct(e.date.getTime(), min, max)}%` }}
-                    onClick={() => setSel({ kind: "event", item: e })}
-                    title={e.title}
-                    aria-label={e.title}
+            <div className="track-wrap">
+              <div className="track-bg" />
+              <div className="period-connectors" aria-hidden>
+                {periods.flatMap((p, i) => {
+                  const centerRem = periodRowCenterFromTopRem(laneByIndex[i]);
+                  const h = `calc(var(--timeline-axis-gap) + ${centerRem}rem)`;
+                  const startLeft = pct(p.start.getTime(), min, max);
+                  const endLeft = pct(p.end.getTime(), min, max);
+                  return [
+                    <div
+                      key={`${p.title}-start-conn`}
+                      className="period-connector"
+                      style={{
+                        left: `${startLeft}%`,
+                        height: h,
+                        borderLeftColor: p.color,
+                      }}
+                    />,
+                    <div
+                      key={`${p.title}-end-conn`}
+                      className="period-connector"
+                      style={{
+                        left: `${endLeft}%`,
+                        height: h,
+                        borderLeftColor: p.color,
+                      }}
+                    />,
+                  ];
+                })}
+              </div>
+              <div className="event-connectors" aria-hidden>
+                {eventsSorted.map((ev) => (
+                  <div
+                    key={`conn-${ev.title + ev.date.toISOString()}`}
+                    className="event-connector"
+                    style={{ left: `${pct(ev.date.getTime(), min, max)}%` }}
                   />
                 ))}
+              </div>
+              {periodIndicesByLane.map((indices, lane) => (
+                <div key={`lane-${lane}`} className="period-row">
+                  <div className="row-bar">
+                    {indices.map((i) => {
+                      const p = periods[i];
+                      const left = pct(p.start.getTime(), min, max);
+                      const width = Math.max(
+                        pct(p.end.getTime(), min, max) - left,
+                        0.8
+                      );
+                      const isActive = sel?.kind === "period" && sel.item === p;
+                      return (
+                        <button
+                          key={p.title}
+                          type="button"
+                          className={`bar ${isActive ? "active" : ""}`}
+                          style={{
+                            left: `${left}%`,
+                            width: `${width}%`,
+                            backgroundColor: p.color,
+                            color: foregroundForHex(p.color),
+                            boxShadow: isActive
+                              ? `0 0 0 2px ${p.color}`
+                              : undefined,
+                          }}
+                          onClick={() => setSel({ kind: "period", item: p })}
+                          title={`${formatDate(p.start)} — ${formatDate(p.end)}`}
+                        >
+                          <span className="bar-text">{p.title}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              <div className="events-row">
+                <div
+                  className="row-bar"
+                  role="group"
+                  aria-label="Eventos en la línea temporal"
+                >
+                  {events.map((e) => (
+                    <button
+                      key={e.title + e.date.toISOString()}
+                      type="button"
+                      className={`event-dot ${sel?.kind === "event" && sel.item === e ? "active" : ""}`}
+                      style={{ left: `${pct(e.date.getTime(), min, max)}%` }}
+                      onClick={() => setSel({ kind: "event", item: e })}
+                      title={e.title}
+                      aria-label={e.title}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
