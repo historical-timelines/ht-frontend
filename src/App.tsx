@@ -383,10 +383,66 @@ export default function App() {
     <div className="app">
       <div className="app-header-inner">
         <header className="header">
-          <h1 className="title">
-            Linea de tiempo de la Historia Argentina
-            <div className="subtitle">desde {formatShortDate(new Date(min))} hasta {formatShortDate(new Date(max))}</div>
-          </h1>
+          <div className="header-main">
+            <h1 className="title">
+              Linea de tiempo de la Historia Argentina
+              <div className="subtitle">
+                desde {formatShortDate(new Date(min))} hasta{" "}
+                {formatShortDate(new Date(max))}
+              </div>
+            </h1>
+            <section
+              className="keyboard-cheatsheet"
+              aria-labelledby="keyboard-cheatsheet-heading"
+            >
+              <h2
+                id="keyboard-cheatsheet-heading"
+                className="keyboard-cheatsheet-title"
+              >
+                Atajos de teclado
+              </h2>
+              <ul className="keyboard-cheatsheet-list">
+                <li className="keyboard-cheatsheet-row">
+                  <span className="keyboard-cheatsheet-label">
+                    Desplazar la línea de tiempo (horizontal)
+                  </span>
+                  <span className="keyboard-cheatsheet-keys">
+                    <kbd className="kbd">←</kbd>
+                    <kbd className="kbd">→</kbd>
+                    <span className="keyboard-cheatsheet-or">o</span>
+                    <kbd className="kbd">A</kbd>
+                    <span className="keyboard-cheatsheet-slash">/</span>
+                    <kbd className="kbd">D</kbd>
+                    <span className="keyboard-cheatsheet-or">o</span>
+                    <kbd className="kbd">H</kbd>
+                    <span className="keyboard-cheatsheet-slash">/</span>
+                    <kbd className="kbd">L</kbd>
+                  </span>
+                </li>
+                <li className="keyboard-cheatsheet-row">
+                  <span className="keyboard-cheatsheet-label">
+                    Desplazar listas o la página (vertical)
+                  </span>
+                  <span className="keyboard-cheatsheet-keys">
+                    <kbd className="kbd">↑</kbd>
+                    <kbd className="kbd">↓</kbd>
+                    <span className="keyboard-cheatsheet-or">o</span>
+                    <kbd className="kbd">W</kbd>
+                    <span className="keyboard-cheatsheet-slash">/</span>
+                    <kbd className="kbd">S</kbd>
+                    <span className="keyboard-cheatsheet-or">o</span>
+                    <kbd className="kbd">K</kbd>
+                    <span className="keyboard-cheatsheet-slash">/</span>
+                    <kbd className="kbd">J</kbd>
+                  </span>
+                </li>
+              </ul>
+              <p className="keyboard-cheatsheet-note">
+                No aplican con Ctrl, Alt ni Meta; se ignoran si estás escribiendo
+                en un campo de texto.
+              </p>
+            </section>
+          </div>
         </header>
       </div>
 
