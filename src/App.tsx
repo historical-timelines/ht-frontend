@@ -51,9 +51,19 @@ function formatAxisMonthDay(d: Date): string {
   });
 }
 
-function pct(time: number, min: number, max: number): number {
-  if (max <= min) return 0;
-  return ((time - min) / (max - min)) * 100;
+/**
+ * Posición horizontal en la pista (0–100% del ancho del contenedor).
+ * Deja márgenes laterales para etiquetas del eje y títulos en diagonal junto al primer/último evento.
+ */
+const TIMELINE_TRACK_INSET_LEFT_PCT = 7;
+const TIMELINE_TRACK_INSET_RIGHT_PCT = 4;
+
+function pctOnTrack(time: number, min: number, max: number): number {
+  if (max <= min) return TIMELINE_TRACK_INSET_LEFT_PCT;
+  const u = (time - min) / (max - min);
+  const span =
+    100 - TIMELINE_TRACK_INSET_LEFT_PCT - TIMELINE_TRACK_INSET_RIGHT_PCT;
+  return TIMELINE_TRACK_INSET_LEFT_PCT + u * span;
 }
 
 /** Texto legible sobre un fondo en hex (#rgb o #rrggbb). */
@@ -283,12 +293,12 @@ function assignAxisMarkLanes(
   max: number
 ): { mark: AxisMark; p: number; lane: number }[] {
   const sorted = [...marks].sort(
-    (a, b) => pct(a.t, min, max) - pct(b.t, min, max)
+    (a, b) => pctOnTrack(a.t, min, max) - pctOnTrack(b.t, min, max)
   );
   const lastCenterInLane: number[] = [];
 
   return sorted.map((mark) => {
-    const p = pct(mark.t, min, max);
+    const p = pctOnTrack(mark.t, min, max);
     let lane = 0;
     for (;; lane++) {
       if (lane >= lastCenterInLane.length) {
@@ -803,8 +813,8 @@ export default function App() {
                 {periods.flatMap((p, i) => {
                   const centerRem = periodRowCenterFromTopRem(laneByIndex[i]);
                   const h = `calc(var(--timeline-axis-gap) + ${centerRem}rem)`;
-                  const startLeft = pct(p.start.getTime(), min, max);
-                  const endLeft = pct(p.end.getTime(), min, max);
+                  const startLeft = pctOnTrack(p.start.getTime(), min, max);
+                  const endLeft = pctOnTrack(p.end.getTime(), min, max);
                   return [
                     <div
                       key={`${p.title}-start-conn`}
@@ -832,7 +842,7 @@ export default function App() {
                   <div
                     key={`conn-${ev.title + ev.date.toISOString()}`}
                     className="event-connector"
-                    style={{ left: `${pct(ev.date.getTime(), min, max)}%` }}
+                    style={{ left: `${pctOnTrack(ev.date.getTime(), min, max)}%` }}
                   />
                 ))}
               </div>
@@ -841,9 +851,9 @@ export default function App() {
                   <div className="row-bar">
                     {indices.map((i) => {
                       const p = periods[i];
-                      const left = pct(p.start.getTime(), min, max);
+                      const left = pctOnTrack(p.start.getTime(), min, max);
                       const width = Math.max(
-                        pct(p.end.getTime(), min, max) - left,
+                        pctOnTrack(p.end.getTime(), min, max) - left,
                         0.8
                       );
                       const isActive = sel?.kind === "period" && sel.item === p;
@@ -878,16 +888,25 @@ export default function App() {
                   role="group"
                   aria-label="Eventos en la línea temporal"
                 >
-                  {events.map((e) => (
-                    <button
+                  {eventsSorted.map((e) => (
+                    <div
                       key={e.title + e.date.toISOString()}
-                      type="button"
-                      className={`event-dot ${sel?.kind === "event" && sel.item === e ? "active" : ""}`}
-                      style={{ left: `${pct(e.date.getTime(), min, max)}%` }}
-                      onClick={() => setSel({ kind: "event", item: e })}
-                      title={e.title}
-                      aria-label={e.title}
-                    />
+                      className="event-marker"
+                      style={{
+                        left: `${pctOnTrack(e.date.getTime(), min, max)}%`,
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className={`event-dot ${sel?.kind === "event" && sel.item === e ? "active" : ""}`}
+                        onClick={() => setSel({ kind: "event", item: e })}
+                        title={e.title}
+                        aria-label={e.title}
+                      />
+                      <span className="event-label-diag" aria-hidden="true">
+                        {e.title}
+                      </span>
+                    </div>
                   ))}
                 </div>
               </div>

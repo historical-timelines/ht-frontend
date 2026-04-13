@@ -193,7 +193,10 @@
 
 .timeline-scroll {
   overflow-x: auto;
-  overflow-y: visible;
+  /* Con overflow-x distinto de visible, "visible" en Y se trata como auto y aparece barra
+     vertical si las etiquetas rotas sobresalen. clip/hidden evitan ese scroll; el hueco bajo la
+     pista lo define --timeline-event-label-room en .timeline-stack */
+  overflow-y: hidden;
   overscroll-behavior-x: contain;
   cursor: grab;
   scrollbar-width: none;
@@ -201,6 +204,12 @@
   /* Scroll horizontal con inercia en iOS; pan permite gesto nativo */
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x pan-y;
+}
+
+@supports (overflow: clip) {
+  .timeline-scroll {
+    overflow-y: clip;
+  }
 }
 
 .timeline-scroll::-webkit-scrollbar {
@@ -219,8 +228,14 @@
 
 .timeline-stack {
   --timeline-axis-gap: 0.85rem;
+  /* Hueco bajo la fila de eventos: las etiquetas son position:absolute y no estiran el flujo;
+     sin esto cortan o fuerzan scroll vertical en .timeline-scroll. Ajustar si cambia el ángulo o max-width */
+  /* Títulos largos + rotación -70°: subir techo si aún recortan (o bajar --event-label-max-ch) */
+  --timeline-event-label-room: clamp(7.25rem, 44vmin, 18.5rem);
   /* Más ancho que el viewport: los ticks se separan y se recorre con scroll horizontal */
   min-width: calc(max(100%, min(4200px, 240vw)) * var(--timeline-zoom, 1));
+  /* Aire extra bajo la pista (leyenda fija abajo del chart) */
+  padding-bottom: 0.85rem;
 }
 
 /* Controles inferiores: magnificación (izq.) + escala tipo mapa (der.) */
@@ -537,9 +552,10 @@
   inset: 0;
 }
 
+/* No cubrir el padding inferior de la fila de eventos (etiquetas): si no, el trazo llega hasta abajo */
 .event-connectors {
   top: calc(-1 * var(--timeline-axis-gap));
-  bottom: 1.125rem;
+  bottom: calc(var(--timeline-event-label-room, 7.25rem) + 1.125rem);
 }
 
 .event-connector,
@@ -580,10 +596,12 @@
   margin-bottom: 0.1rem;
 }
 
-/* Los puntos de evento usan área táctil 44px; la fila debe acomodarlos */
+/* Los puntos de evento usan área táctil 44px; la fila debe acomodarlos + etiquetas en diagonal */
 .events-row .row-bar {
   min-height: max(2.25rem, var(--touch-target-min));
   height: auto;
+  padding-bottom: var(--timeline-event-label-room);
+  overflow: visible;
 }
 
 .row-bar {
@@ -648,11 +666,26 @@
   display: block;
 }
 
-/* Área táctil amplia; el círculo visible es ::after (14px) */
-.event-dot {
+/* Ancla en la fecha (centro vertical de la fila); el botón queda centrado en ese punto */
+.event-marker {
   position: absolute;
   top: 50%;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* Área táctil amplia; el círculo visible es ::after (14px) */
+.event-marker .event-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
   transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+
+.event-dot {
   box-sizing: border-box;
   width: var(--touch-target-min);
   height: var(--touch-target-min);
@@ -691,6 +724,41 @@
 
 .event-dot.active::after {
   box-shadow: 0 0 0 3px var(--accent);
+}
+
+/*
+ * Etiqueta: pivote en el borde derecho (última letra junto al punto), texto
+ * hacia la izquierda; inclinación (~-70°) para separarse de vecinos. Si cambiás el ángulo o
+ * --event-label-max-ch o --timeline-event-label-room en .timeline-stack.
+ */
+.event-label-diag {
+  --event-label-tilt: -70deg;
+  /* Ancho máximo del bloque de texto antes de ellipsis: menos ancho ⇒ menos “alcance” al rotar */
+  --event-label-max-ch: min(8.75rem, 42vw);
+
+  position: absolute;
+  right: 0;
+  top: 10px;
+  z-index: 1;
+  width: max-content;
+  max-width: var(--event-label-max-ch);
+  padding: 0 1px;
+  font-size: 0.58rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform-origin: right center;
+  transform: rotate(var(--event-label-tilt));
+  text-shadow:
+    0 0 8px var(--surface),
+    0 0 4px var(--surface),
+    0 1px 0 var(--surface);
+  pointer-events: none;
 }
 
 .legend-title {
