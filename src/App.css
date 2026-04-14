@@ -344,6 +344,11 @@
   padding-top: 0.35rem;
 }
 
+/* Menos aire entre eje y carriles cuando el visor ya ocupa la pantalla */
+.viewer-shell--has-selection .timeline-stack {
+  --timeline-axis-gap: 0.62rem;
+}
+
 .viewer-chart-wrap {
   flex: 0 1 auto;
   max-height: min(56dvh, 34rem);
