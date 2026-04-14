@@ -1482,13 +1482,101 @@
   );
 }
 
-/* Área táctil amplia; el círculo visible es ::after (14px) */
-.event-marker .event-dot {
+/*
+ * Un solo control: punto + título. Transform alinea el disco con la fecha
+ * (ancla en x=0 del marcador) y ::before amplía feedback táctil.
+ */
+.event-marker .event-hit {
   position: absolute;
-  left: 50%;
+  left: 0;
   top: 50%;
-  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  width: max-content;
+  max-width: none;
+  margin: 0;
+  padding: 0.12rem 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
   pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  isolation: isolate;
+  box-sizing: border-box;
+}
+
+.event-hit::before {
+  content: "";
+  position: absolute;
+  inset: -7px -9px -7px -9px;
+  border-radius: 12px;
+  background: transparent;
+  z-index: -1;
+  transition: background-color 0.12s ease;
+}
+
+.event-hit:hover::before {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.event-hit:active::before {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.event-hit:focus {
+  outline: none;
+}
+
+.event-hit:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.event-hit--start {
+  flex-direction: row;
+  transform: translate(calc(var(--touch-target-min, 44px) / -2), -50%);
+}
+
+.event-hit--end {
+  flex-direction: row-reverse;
+  transform: translate(
+    calc(var(--touch-target-min, 44px) / 2 - 100%),
+    -50%
+  );
+}
+
+.event-hit--center {
+  flex-direction: row;
+  transform: translate(-50%, -50%);
+}
+
+@media (pointer: coarse) {
+  .event-marker .event-hit {
+    gap: 0.42rem;
+    padding: 0.16rem 0;
+  }
+
+  .event-hit::before {
+    inset: -10px -12px -11px -12px;
+    border-radius: 14px;
+  }
+
+  .event-hit:hover::before {
+    background: color-mix(in srgb, var(--text) 8%, transparent);
+  }
+
+  .event-hit:active::before {
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+  }
+}
+
+.event-hit .event-dot {
+  flex-shrink: 0;
 }
 
 .event-dot {
@@ -1501,11 +1589,10 @@
   border: none;
   border-radius: 50%;
   background: transparent;
-  cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  -webkit-tap-highlight-color: transparent;
+  pointer-events: none;
 }
 
 .event-dot::after {
@@ -1546,12 +1633,12 @@
 }
 
 /*
- * Etiqueta al costado de la bola; el carril vertical (--event-label-lane) vive en .event-marker (top).
+ * Etiqueta al costado de la bola (flujo flex dentro de .event-hit).
+ * El carril vertical (--event-label-lane) sigue viviendo en .event-marker (top).
  */
 .event-label-h {
-  position: absolute;
+  position: relative;
   z-index: 1;
-  top: 50%;
   max-width: min(12rem, 40vw);
   padding: 0;
   font-size: 0.68rem;
@@ -1563,28 +1650,23 @@
   overflow: hidden;
   text-overflow: ellipsis;
   pointer-events: none;
+  flex: 0 1 auto;
+  min-width: 0;
   text-shadow:
     0 0 8px var(--surface),
     0 0 4px var(--surface),
     0 1px 0 var(--surface);
 }
 
-.event-label--start {
-  left: 0.6rem;
-  transform: translateY(-50%);
+.event-hit--start .event-label-h {
   text-align: left;
 }
 
-.event-label--center {
-  left: 0;
-  transform: translate(-50%, -50%);
+.event-hit--center .event-label-h {
   text-align: center;
 }
 
-.event-label--end {
-  left: auto;
-  right: 0.6rem;
-  transform: translateY(-50%);
+.event-hit--end .event-label-h {
   text-align: right;
 }
 

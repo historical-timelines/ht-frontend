@@ -397,7 +397,7 @@ function labelIntervalsOverlap(
   return a[0] < b[1] + gapPct && a[1] > b[0] - gapPct;
 }
 
-/** Coincide con `.event-label--start` / coarse: mitad táctil + margen hasta el texto. */
+/** Coincide con el gap visual punto–texto (`.event-hit`) + mitad táctil. */
 function eventLabelEdgePx(pointerCoarse: boolean): number {
   const touch = 44;
   return touch / 2 + (pointerCoarse ? 8 : 6);
@@ -1316,7 +1316,7 @@ export default function App() {
                       >
                         <button
                           type="button"
-                          className={`event-dot ${isEventActive ? "active" : ""}`}
+                          className={`event-hit event-hit--${pl.anchor}`}
                           ref={(el) => {
                             if (isEventActive) {
                               timelineSelectedEventDotRef.current = el;
@@ -1328,19 +1328,22 @@ export default function App() {
                           }}
                           onClick={() => setSel({ kind: "event", item: e })}
                           title={e.title}
-                          aria-label={e.title}
-                        />
-                        <span
-                          className={`event-label-h event-label--${pl.anchor}`}
-                          aria-hidden="true"
-                          style={
-                            {
-                              maxWidth: `${Math.round(pl.maxWidthPx)}px`,
-                            } as CSSProperties
-                          }
                         >
-                          {e.title}
-                        </span>
+                          <span
+                            className={`event-dot ${isEventActive ? "active" : ""}`}
+                            aria-hidden="true"
+                          />
+                          <span
+                            className="event-label-h"
+                            style={
+                              {
+                                maxWidth: `${Math.round(pl.maxWidthPx)}px`,
+                              } as CSSProperties
+                            }
+                          >
+                            {e.title}
+                          </span>
+                        </button>
                       </div>
                     );
                   })}
