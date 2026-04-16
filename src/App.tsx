@@ -105,6 +105,20 @@ function firstEventFromSorted(
   return null;
 }
 
+/** Primer evento cronológico cuya fecha cae dentro del período (inclusive). */
+function firstEventInPeriod(
+  eventsSorted: TimelineEvent[],
+  period: Period
+): TimelineEvent | null {
+  const t0 = period.start.getTime();
+  const t1 = period.end.getTime();
+  for (const e of eventsSorted) {
+    const te = e.date.getTime();
+    if (te >= t0 && te <= t1) return e;
+  }
+  return null;
+}
+
 function foregroundForHex(hex: string): string {
   const raw = hex.trim().replace(/^#/, "");
   if (raw.length !== 3 && raw.length !== 6) return "var(--text)";
@@ -973,6 +987,24 @@ export default function App() {
         return;
       }
 
+      /* Ctrl/Cmd + ←/→ : evento anterior / siguiente (misma lógica que los botones). */
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
+        if (e.key === "ArrowLeft") {
+          if (eventStepAvailability.canPrev) {
+            e.preventDefault();
+            stepEvent(-1);
+          }
+          return;
+        }
+        if (e.key === "ArrowRight") {
+          if (eventStepAvailability.canNext) {
+            e.preventDefault();
+            stepEvent(1);
+          }
+          return;
+        }
+      }
+
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
       const key = e.key;
@@ -997,6 +1029,26 @@ export default function App() {
         ch === "w" || ch === "k" || key === "ArrowUp";
       const goDown =
         ch === "s" || ch === "j" || key === "ArrowDown";
+
+      /* Sin modificadores: con selección, ↑/↓ (solo flechas) alternan contexto período ↔ evento. */
+      if (sel != null) {
+        if (key === "ArrowUp" && sel.kind === "event") {
+          const p = firstPeriodContainingDate(periods, sel.item.date);
+          if (p != null) {
+            e.preventDefault();
+            setSel({ kind: "period", item: p });
+            return;
+          }
+        }
+        if (key === "ArrowDown" && sel.kind === "period") {
+          const ev = firstEventInPeriod(eventsSorted, sel.item);
+          if (ev != null) {
+            e.preventDefault();
+            setSel({ kind: "event", item: ev });
+            return;
+          }
+        }
+      }
 
       if (goLeft) {
         if (!scrollEl) return;
@@ -1028,7 +1080,15 @@ export default function App() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [helpOpen]);
+  }, [
+    helpOpen,
+    sel,
+    periods,
+    eventsSorted,
+    stepEvent,
+    eventStepAvailability.canPrev,
+    eventStepAvailability.canNext,
+  ]);
 
   if (appPhase === "welcome") {
     return <WelcomeScreen onEnter={enterViewer} />;

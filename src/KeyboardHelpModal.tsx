@@ -66,6 +66,36 @@ export function KeyboardHelpModal({ open, onClose }: KeyboardHelpModalProps) {
           </li>
           <li className="keyboard-cheatsheet-row">
             <span className="keyboard-cheatsheet-label">
+              Evento anterior o siguiente en la línea de tiempo
+            </span>
+            <span className="keyboard-cheatsheet-keys">
+              <kbd className="kbd">Ctrl</kbd>
+              <span className="keyboard-cheatsheet-slash">+</span>
+              <kbd className="kbd">←</kbd>
+              <span className="keyboard-cheatsheet-slash">/</span>
+              <kbd className="kbd">→</kbd>
+              <span className="keyboard-cheatsheet-or">o</span>
+              <kbd className="kbd">⌘</kbd>
+              <span className="keyboard-cheatsheet-slash">+</span>
+              <kbd className="kbd">←</kbd>
+              <span className="keyboard-cheatsheet-slash">/</span>
+              <kbd className="kbd">→</kbd>
+            </span>
+          </li>
+          <li className="keyboard-cheatsheet-row">
+            <span className="keyboard-cheatsheet-label">
+              Con selección: subir al período que contiene el evento, o bajar al
+              primer evento del período
+            </span>
+            <span className="keyboard-cheatsheet-keys">
+              <kbd className="kbd">↑</kbd>
+              <span className="keyboard-cheatsheet-slash">/</span>
+              <kbd className="kbd">↓</kbd>
+              <span className="keyboard-cheatsheet-or">(solo flechas)</span>
+            </span>
+          </li>
+          <li className="keyboard-cheatsheet-row">
+            <span className="keyboard-cheatsheet-label">
               Desplazar listas o el panel de detalle (vertical)
             </span>
             <span className="keyboard-cheatsheet-keys">
@@ -109,11 +139,14 @@ export function KeyboardHelpModal({ open, onClose }: KeyboardHelpModalProps) {
           </li>
         </ul>
         <p className="keyboard-cheatsheet-note help-modal-note">
-          Los atajos de flechas y letras no aplican con Ctrl, Alt ni Meta (salvo
-          Ctrl + rueda en la línea de tiempo; en macOS también funciona Cmd +
-          rueda); se ignoran si estás escribiendo en un campo de texto. En móvil
-          o tablet podés deslizar con un dedo y pellizcar con dos para el zoom
-          del eje.
+          Los atajos de flechas y letras no usan Ctrl, Alt ni Meta, salvo Ctrl
+          (o ⌘ en macOS) con ← y → para saltar entre eventos, y Ctrl + rueda
+          sobre la línea de tiempo para el zoom del eje. Con un evento o un
+          período elegido, las flechas ↑ y ↓ solas pueden cambiar la selección
+          al período contenedor o al primer evento del período; en el resto de
+          los casos ↑↓ y W S K J desplazan verticalmente. Todo se ignora si
+          estás escribiendo en un campo de texto. En móvil o tablet podés
+          deslizar con un dedo y pellizcar con dos para el zoom del eje.
         </p>
       </div>
     </div>
