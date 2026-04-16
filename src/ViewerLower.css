@@ -9,10 +9,10 @@
   grid-template-columns: minmax(0, 1fr);
   /* Una columna: lista arriba (crece), detalle abajo */
   grid-template-rows: minmax(0, 1fr) minmax(0, auto);
-  gap: 0.65rem;
+  gap: 0.45rem;
   align-items: stretch;
   align-content: stretch;
-  padding: 0 clamp(0.65rem, 2vw, 1rem) 0.75rem;
+  padding: 0 clamp(0.45rem, 1.6vw, 0.75rem) 0.55rem;
   overflow: hidden;
 }
 
@@ -20,8 +20,8 @@
   .viewer-lower {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
     grid-template-rows: minmax(0, 1fr);
-    gap: 0.75rem;
-    padding-bottom: 0.85rem;
+    gap: 0.5rem;
+    padding-bottom: 0.6rem;
   }
 }
 
@@ -42,10 +42,10 @@
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 1fr);
   margin: 0;
-  padding: 0.55rem 0.65rem 0.7rem;
+  padding: 0.38rem 0.5rem 0.5rem;
   background: color-mix(in srgb, var(--surface) 96%, var(--bg));
   border: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
 }
 
@@ -67,7 +67,7 @@
 }
 
 .viewer-lower-legend .legend-title--second {
-  margin-top: 0.35rem;
+  margin-top: 0.22rem;
 }
 
 .viewer-lower-col--detail {
@@ -91,7 +91,45 @@
 .detail.viewer-lower-detail {
   min-height: 0;
   border-color: color-mix(in srgb, var(--border) 65%, transparent);
-  padding: 0.95rem 1rem 1.1rem;
+  border-radius: 8px;
+  padding: 0.55rem 0.65rem 0.65rem;
+}
+
+.detail.viewer-lower-detail .detail-title {
+  font-size: 1.02rem;
+  margin: 0 0 0.18rem;
+  line-height: 1.2;
+}
+
+.detail.viewer-lower-detail .detail-meta {
+  font-size: 0.76rem;
+  margin: 0 0 0.45rem;
+  line-height: 1.35;
+}
+
+.detail.viewer-lower-detail .detail-items {
+  font-size: 0.78rem;
+  line-height: 1.42;
+  padding-left: 0.95rem;
+}
+
+.detail.viewer-lower-detail .detail-items li {
+  margin: 0 0 0.32em;
+}
+
+.detail.viewer-lower-detail .detail-placeholder {
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.detail.viewer-lower-detail .links {
+  margin: 0.5rem 0 0;
+  padding-left: 0.85rem;
+}
+
+.detail.viewer-lower-detail .links a {
+  font-size: 0.74rem;
+  line-height: 1.38;
 }
 
 .detail.viewer-lower-detail--period {
@@ -107,24 +145,28 @@
   max-height: none;
   overflow: visible;
   margin-bottom: 0;
+  padding-right: 0.22rem;
 }
 
 .viewer-lower .legend-title {
-  font-size: 1rem;
-  margin: 0 0 0.45rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin: 0 0 0.28rem;
+  letter-spacing: -0.01em;
 }
 
 .viewer-lower .linkish {
-  padding: 0.4rem 0.7rem;
-  border-radius: 8px;
-  gap: 0.45rem;
+  font-size: 0.8rem;
+  padding: 0.28rem 0.5rem;
+  border-radius: 6px;
+  gap: 0.32rem;
   border: 1px solid transparent;
   box-sizing: border-box;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .viewer-lower .linkish {
-    padding: 0.32rem 0.65rem;
+    padding: 0.22rem 0.45rem;
     min-height: 0;
   }
 }
@@ -132,6 +174,16 @@
 .viewer-lower .period-link {
   align-items: flex-start;
   text-align: left;
+  gap: 0.35rem;
+  padding-top: 0.22rem;
+  padding-bottom: 0.22rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .viewer-lower .period-link {
+    padding-top: 0.12rem;
+    padding-bottom: 0.12rem;
+  }
 }
 
 .viewer-lower .period-link__text {
@@ -142,14 +194,16 @@
 
 .viewer-lower .period-link__text > strong {
   display: block;
-  line-height: 1.28;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.22;
 }
 
 .viewer-lower .period-link__dates {
   display: block;
-  margin-top: 0.15rem;
-  font-size: 0.78rem;
-  line-height: 1.3;
+  margin-top: 0.08rem;
+  font-size: 0.68rem;
+  line-height: 1.28;
 }
 
 .viewer-lower .event-link__text {
@@ -158,17 +212,19 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.12rem;
+  gap: 0.06rem;
   text-align: left;
 }
 
 .viewer-lower .event-link__text > strong {
-  line-height: 1.28;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.22;
 }
 
 .viewer-lower .event-link__date {
-  font-size: 0.78rem;
-  line-height: 1.3;
+  font-size: 0.68rem;
+  line-height: 1.28;
 }
 
 .viewer-lower .linkish.linkish--selected {
@@ -184,5 +240,32 @@
 }
 
 .viewer-lower .period-swatch {
-  margin-top: 0.32em;
+  margin-top: 0.22em;
+  width: 0.55rem;
+  height: 0.55rem;
+}
+
+.viewer-lower .period-list li,
+.viewer-lower .event-list li {
+  margin-bottom: 0.28rem;
+}
+
+@media (pointer: coarse) {
+  .viewer-lower .period-list li,
+  .viewer-lower .event-list li {
+    margin-bottom: 0.36rem;
+  }
+
+  .viewer-lower .linkish {
+    font-size: 0.82rem;
+    padding: 0.32rem 0.52rem;
+  }
+
+  .detail.viewer-lower-detail .detail-title {
+    font-size: 1.06rem;
+  }
+
+  .detail.viewer-lower-detail .detail-items {
+    font-size: 0.8rem;
+  }
 }

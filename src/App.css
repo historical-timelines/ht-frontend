@@ -26,14 +26,14 @@
 .viewer-header-wrap {
   flex-shrink: 0;
   z-index: 10;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 42%, transparent);
   background: var(--bg);
 }
 
 .viewer-header-inner {
   max-width: 72rem;
   margin: 0 auto;
-  padding: 0.15rem 0.875rem;
+  padding: 0.08rem 0.55rem;
 }
 
 .viewer-header-wrap--collapsed {
@@ -108,7 +108,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem 0.75rem;
+  gap: 0.35rem 0.55rem;
 }
 
 .viewer-toolbar-text {
@@ -305,19 +305,30 @@
  * del overlay (zoom | escala) se envuelve mal y parece “flotar” mal.
  * En selección los pasamos a flujo normal debajo del timeline.
  */
+.viewer-shell--has-selection .timeline-chrome {
+  position: relative;
+  left: 0;
+  right: 0;
+  bottom: auto;
+  flex-shrink: 0;
+  margin-top: 0.06rem;
+  width: 100%;
+  max-width: 100%;
+  pointer-events: none;
+}
+
 .viewer-shell--has-selection .chart-bleed-overlays {
   position: relative;
   left: 0;
   right: 0;
   bottom: auto;
   flex-shrink: 0;
-  margin-top: 0.08rem;
   width: 100%;
   max-width: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, max-content);
   grid-template-rows: auto;
-  column-gap: 0.4rem;
+  column-gap: 0.35rem;
   row-gap: 0;
   align-items: center;
   justify-items: stretch;
@@ -339,8 +350,8 @@
 }
 
 .viewer-shell--has-selection .chart.chart-bleed.chart--viewer {
-  padding-bottom: 0.35rem;
-  padding-top: 0.35rem;
+  padding-bottom: 0.22rem;
+  padding-top: 0.22rem;
 }
 
 /* Menos aire entre eje y carriles cuando el visor ya ocupa la pantalla */
@@ -383,6 +394,32 @@
   flex-direction: column;
   margin-bottom: 0;
   margin-top: 0;
+  border: none;
+  border-radius: 0;
+  background: var(--bg);
+  box-shadow: none;
+}
+
+.chart.chart-bleed.chart--viewer {
+  padding-left: clamp(0.28rem, 0.9vw, 0.55rem);
+  padding-right: clamp(0.28rem, 0.9vw, 0.55rem);
+  padding-top: 0.28rem;
+  padding-bottom: clamp(0.42rem, 1.2vw, 0.72rem);
+}
+
+.chart.chart-bleed.chart--viewer.chart--timeline-chrome-collapsed {
+  padding-bottom: clamp(0.22rem, 0.7vw, 0.38rem);
+}
+
+@media (max-width: 90rem) {
+  .chart.chart-bleed.chart--viewer {
+    padding-top: 0.2rem;
+    padding-bottom: clamp(0.32rem, 1vw, 0.55rem);
+  }
+
+  .chart.chart-bleed.chart--viewer.chart--timeline-chrome-collapsed {
+    padding-bottom: 0.18rem;
+  }
 }
 
 .chart--viewer .timeline-scroll {
@@ -753,20 +790,82 @@
   font-size: 0.6rem;
 }
 
+/* Contenedor del panel colapsable (zoom + escala + nav. eventos) */
+.timeline-chrome {
+  z-index: 4;
+}
+
+.viewer-shell:not(.viewer-shell--has-selection) .timeline-chrome {
+  position: absolute;
+  left: clamp(0.35rem, 1.2vw, 0.85rem);
+  right: clamp(0.35rem, 1.2vw, 0.85rem);
+  bottom: 0.18rem;
+  pointer-events: none;
+}
+
+.timeline-chrome--collapsed {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.timeline-chrome-fab {
+  pointer-events: auto;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--border) 65%, transparent),
+    0 2px 9px color-mix(in srgb, #000 34%, transparent);
+}
+
+.timeline-chrome--expanded {
+  pointer-events: none;
+}
+
 /* Controles inferiores: magnificación (izq.) + escala tipo mapa (der.) */
 .chart-bleed-overlays {
-  position: absolute;
-  left: clamp(0.5rem, 1.5vw, 1.1rem);
-  right: clamp(0.5rem, 1.5vw, 1.1rem);
-  bottom: 0.28rem;
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 0.28rem 0.45rem;
-  z-index: 4;
+  gap: 0.22rem 0.38rem;
   pointer-events: none;
   overflow: visible;
+}
+
+.timeline-chrome-collapse-btn {
+  position: absolute;
+  top: -0.02rem;
+  right: 0;
+  z-index: 6;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  width: 1.45rem;
+  height: 1.45rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--surface) 94%, var(--bg));
+  color: var(--muted);
+  cursor: pointer;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    border-color 0.12s ease,
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.timeline-chrome-collapse-btn:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+.timeline-chrome-collapse-btn:active {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
 }
 
 .timeline-controls-left {

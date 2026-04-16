@@ -261,6 +261,14 @@ const SCALE_BAR_PX = 112;
 /** Separación mínima entre centros de etiquetas (% del ancho de la pista) para compartir la misma fila. */
 const AXIS_LABEL_MIN_GAP_PCT = 3.1;
 
+/** Viewport “tablet” para el visor: barras colapsadas al entrar. */
+const VIEWER_TABLET_MQ = "(max-width: 1024px)";
+
+function viewerIsTabletViewport(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia(VIEWER_TABLET_MQ).matches;
+}
+
 function clamp(n: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, n));
 }
@@ -601,6 +609,8 @@ export default function App() {
   const [sel, setSel] = useState<Selection>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [viewerHeaderCollapsed, setViewerHeaderCollapsed] = useState(false);
+  /** Zoom, escala del eje y navegación de eventos (panel inferior del timeline). */
+  const [timelineChromeExpanded, setTimelineChromeExpanded] = useState(false);
   const [timelineZoom, setTimelineZoom] = useState(1);
   const [stackWidthPx, setStackWidthPx] = useState<number | null>(null);
   const [pointerCoarse, setPointerCoarse] = useState(
@@ -678,6 +688,13 @@ export default function App() {
     sync();
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  const enterViewer = useCallback(() => {
+    setAppPhase("viewer");
+    const tablet = viewerIsTabletViewport();
+    setViewerHeaderCollapsed(tablet);
+    setTimelineChromeExpanded(!tablet);
   }, []);
 
   const { eventLabelPlacements, eventLabelMaxLane } = useMemo(
@@ -1014,7 +1031,7 @@ export default function App() {
   }, [helpOpen]);
 
   if (appPhase === "welcome") {
-    return <WelcomeScreen onEnter={() => setAppPhase("viewer")} />;
+    return <WelcomeScreen onEnter={enterViewer} />;
   }
 
   return (
@@ -1079,7 +1096,9 @@ export default function App() {
                       setAppPhase("welcome");
                       setSel(null);
                       setHelpOpen(false);
-                      setViewerHeaderCollapsed(false);
+                      const tablet = viewerIsTabletViewport();
+                      setViewerHeaderCollapsed(tablet);
+                      setTimelineChromeExpanded(!tablet);
                     }}
                   >
                     Inicio
@@ -1149,7 +1168,7 @@ export default function App() {
           className={`viewer-chart-wrap ${sel != null ? "viewer-chart-wrap--pinned" : ""}`.trim()}
         >
       <section
-        className="chart chart-bleed chart--viewer"
+        className={`chart chart-bleed chart--viewer${timelineChromeExpanded ? "" : " chart--timeline-chrome-collapsed"}`.trim()}
         aria-label="Línea de tiempo"
       >
         <div
@@ -1361,106 +1380,170 @@ export default function App() {
           </div>
         </div>
 
-        <div className="chart-bleed-overlays">
-          <div className="timeline-controls-left">
-            <div
-              className="timeline-zoom-panel"
-              role="group"
-              aria-label="Navegación de eventos y magnificación del eje"
+        <div
+          className={`timeline-chrome${timelineChromeExpanded ? " timeline-chrome--expanded" : " timeline-chrome--collapsed"}`.trim()}
+        >
+          {!timelineChromeExpanded ? (
+            <button
+              type="button"
+              className="viewer-header-peek-toggle timeline-chrome-fab"
+              onClick={() => setTimelineChromeExpanded(true)}
+              aria-expanded={false}
+              aria-controls="timeline-chrome-panel"
+              aria-label="Mostrar zoom, escala del eje y navegación de eventos"
+              title="Zoom y escala"
             >
-              <div
-                className="timeline-event-nav"
-                role="group"
-                aria-label="Navegación entre eventos"
+              <svg
+                className="viewer-header-icon-svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
               >
-                <button
-                  type="button"
-                  className="timeline-event-nav-btn"
-                  disabled={!eventStepAvailability.canPrev}
-                  onClick={() => stepEvent(-1)}
-                  aria-label="Ir al evento anterior"
-                >
-                  Anterior
-                </button>
-                <button
-                  type="button"
-                  className="timeline-event-nav-btn"
-                  disabled={!eventStepAvailability.canNext}
-                  onClick={() => stepEvent(1)}
-                  aria-label="Ir al evento siguiente"
-                >
-                  Siguiente
-                </button>
-              </div>
-              <span className="timeline-zoom-sep" aria-hidden="true" />
-              <span className="timeline-zoom-icon" aria-hidden>
-                <svg
-                  width="15"
-                  height="15"
-                  viewBox="0 0 24 24"
+                <path
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 21h6m6-9h6m6 5h6"
+                />
+              </svg>
+            </button>
+          ) : (
+            <div
+              id="timeline-chrome-panel"
+              className="chart-bleed-overlays"
+            >
+              <button
+                type="button"
+                className="timeline-chrome-collapse-btn"
+                onClick={() => setTimelineChromeExpanded(false)}
+                aria-expanded={true}
+                aria-controls="timeline-chrome-panel"
+                aria-label="Ocultar zoom, escala del eje y navegación de eventos"
+                title="Ocultar controles"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
                 >
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.3-4.3" />
+                  <path
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 9l6 6 6-6"
+                  />
                 </svg>
-              </span>
-              <button
-                type="button"
-                className="timeline-zoom-btn"
-                onClick={() => onZoomNudge(-1)}
-                aria-label="Reducir magnificación del eje"
-              >
-                −
               </button>
-              <input
-                className="timeline-zoom-slider"
-                type="range"
-                min={0}
-                max={1000}
-                step={1}
-                value={zoomSliderValue}
-                onChange={onZoomSliderChange}
-                aria-valuemin={0}
-                aria-valuemax={1000}
-                aria-valuenow={zoomSliderValue}
-                aria-label="Magnificación de la línea de tiempo"
-              />
-              <button
-                type="button"
-                className="timeline-zoom-btn"
-                onClick={() => onZoomNudge(1)}
-                aria-label="Aumentar magnificación del eje"
-              >
-                +
-              </button>
-              <span className="timeline-zoom-readout" aria-live="polite">
-                {formatZoomFactorUi(timelineZoom)}
-              </span>
-            </div>
-          </div>
+              <div className="timeline-controls-left">
+                <div
+                  className="timeline-zoom-panel"
+                  role="group"
+                  aria-label="Navegación de eventos y magnificación del eje"
+                >
+                  <div
+                    className="timeline-event-nav"
+                    role="group"
+                    aria-label="Navegación entre eventos"
+                  >
+                    <button
+                      type="button"
+                      className="timeline-event-nav-btn"
+                      disabled={!eventStepAvailability.canPrev}
+                      onClick={() => stepEvent(-1)}
+                      aria-label="Ir al evento anterior"
+                    >
+                      Anterior
+                    </button>
+                    <button
+                      type="button"
+                      className="timeline-event-nav-btn"
+                      disabled={!eventStepAvailability.canNext}
+                      onClick={() => stepEvent(1)}
+                      aria-label="Ir al evento siguiente"
+                    >
+                      Siguiente
+                    </button>
+                  </div>
+                  <span className="timeline-zoom-sep" aria-hidden="true" />
+                  <span className="timeline-zoom-icon" aria-hidden>
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.3-4.3" />
+                    </svg>
+                  </span>
+                  <button
+                    type="button"
+                    className="timeline-zoom-btn"
+                    onClick={() => onZoomNudge(-1)}
+                    aria-label="Reducir magnificación del eje"
+                  >
+                    −
+                  </button>
+                  <input
+                    className="timeline-zoom-slider"
+                    type="range"
+                    min={0}
+                    max={1000}
+                    step={1}
+                    value={zoomSliderValue}
+                    onChange={onZoomSliderChange}
+                    aria-valuemin={0}
+                    aria-valuemax={1000}
+                    aria-valuenow={zoomSliderValue}
+                    aria-label="Magnificación de la línea de tiempo"
+                  />
+                  <button
+                    type="button"
+                    className="timeline-zoom-btn"
+                    onClick={() => onZoomNudge(1)}
+                    aria-label="Aumentar magnificación del eje"
+                  >
+                    +
+                  </button>
+                  <span className="timeline-zoom-readout" aria-live="polite">
+                    {formatZoomFactorUi(timelineZoom)}
+                  </span>
+                </div>
+              </div>
 
-          <div className="timeline-scale-overlay" aria-hidden>
-            <div className="timeline-scale-topline">
-              <span className="timeline-scale-caption">Escala del eje</span>
-              <div className="timeline-scale-label">{scaleBarLabel}</div>
-            </div>
-            <div className="timeline-scale-rail-wrap">
-              <div
-                className="timeline-scale-rail"
-                style={{ width: SCALE_BAR_PX }}
-              />
-              <div className="timeline-scale-ticks" style={{ width: SCALE_BAR_PX }}>
-                <span />
-                <span />
-                <span />
-                <span />
+              <div className="timeline-scale-overlay" aria-hidden>
+                <div className="timeline-scale-topline">
+                  <span className="timeline-scale-caption">Escala del eje</span>
+                  <div className="timeline-scale-label">{scaleBarLabel}</div>
+                </div>
+                <div className="timeline-scale-rail-wrap">
+                  <div
+                    className="timeline-scale-rail"
+                    style={{ width: SCALE_BAR_PX }}
+                  />
+                  <div
+                    className="timeline-scale-ticks"
+                    style={{ width: SCALE_BAR_PX }}
+                  >
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
         </div>
