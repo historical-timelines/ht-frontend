@@ -423,6 +423,15 @@ function labelIntervalsOverlap(
   return a[0] < b[1] + gapPct && a[1] > b[0] - gapPct;
 }
 
+/** Fuentes/subpíxeles: el canvas suele medir un poco menos que el texto renderizado. */
+const EVENT_LABEL_MEASURE_SAFETY = 1.08;
+
+/**
+ * Si dos marcas caen casi en la misma columna (% de pista), alternar ancla despliega el texto
+ * a lados opuestos del punto y reduce solapes horizontales antes de subir de carril.
+ */
+const EVENT_LABEL_TIGHT_PCT = 0.55;
+
 /** Desde el centro del punto al inicio del texto (estado inactivo; coincide con gap base en App.css). */
 function eventLabelEdgePx(pointerCoarse: boolean): number {
   const dotHalfPx = 7;
@@ -432,8 +441,8 @@ function eventLabelEdgePx(pointerCoarse: boolean): number {
 
 /**
  * Reparte etiquetas de eventos en carriles verticales (swimming lanes), como los ticks del eje.
- * Los intervalos de colisión siguen el anclaje real (texto a la derecha/izquierda/centro del punto)
- * en % del ancho del stack (misma convención que pctOnTrack).
+ * Colisión: rectángulos horizontales [left,right] en % de pista (misma convención que pctOnTrack),
+ * más un hueco mínimo. Si siguen chocando, sube de carril (más `lane` → más abajo en CSS).
  */
 function assignEventLabelLanes(
   eventsSorted: TimelineEvent[],
@@ -463,12 +472,42 @@ function assignEventLabelLanes(
     event,
     i,
     p: pctOnTrack(event.date.getTime(), min, max),
-    baseWidthPx: widthsPx[i]!,
+    baseWidthPx: widthsPx[i]! * EVENT_LABEL_MEASURE_SAFETY,
   }));
   items.sort((a, b) => a.p - b.p || a.i - b.i);
 
-  /** Hueco horizontal mínimo entre cajas de etiqueta (como AXIS_LABEL_MIN_GAP_PCT arriba). */
-  const gapPct = 0.62;
+  /** Hueco horizontal mínimo entre cajas (% pista), acotado inferiormente en px. */
+  const gapPct = Math.max(0.62, (12 / stackPx) * 100);
+
+  const anchorByS: EventLabelAnchor[] = new Array(n);
+  if (n === 1) {
+    const p0 = items[0]!.p;
+    anchorByS[0] =
+      p0 <= 6 ? "start" : p0 >= 94 ? "end" : "center";
+  } else {
+    anchorByS[0] = "start";
+    anchorByS[n - 1] = "end";
+    for (let s = 1; s < n - 1; s++) {
+      const p = items[s]!.p;
+      const prevP = items[s - 1]!.p;
+      const nextP = items[s + 1]!.p;
+      const gapLeft = p - prevP;
+      const gapRight = nextP - p;
+      let anchor: EventLabelAnchor =
+        gapRight > gapLeft
+          ? "start"
+          : gapRight < gapLeft
+            ? "end"
+            : p < 50
+              ? "start"
+              : "end";
+      if (Math.abs(p - prevP) < EVENT_LABEL_TIGHT_PCT) {
+        anchor = anchorByS[s - 1] === "start" ? "end" : "start";
+      }
+      anchorByS[s] = anchor;
+    }
+  }
+
   const lanes: [number, number][][] = [];
   const temp: {
     i: number;
@@ -479,22 +518,7 @@ function assignEventLabelLanes(
 
   for (let s = 0; s < items.length; s++) {
     const { i, p, baseWidthPx } = items[s]!;
-    const isFirst = s === 0;
-    const isLast = s === n - 1;
-
-    let anchor: EventLabelAnchor;
-    if (n === 1) {
-      if (p <= 6) anchor = "start";
-      else if (p >= 94) anchor = "end";
-      else anchor = "center";
-    } else if (isFirst) {
-      anchor = "start";
-    } else if (isLast) {
-      anchor = "end";
-    } else {
-      /* Empujar el texto hacia el interior del gráfico (más aire al borde). */
-      anchor = p < 50 ? "start" : "end";
-    }
+    const anchor = anchorByS[s]!;
 
     const rawSpanPct = (baseWidthPx / stackPx) * 100 + 0.22;
 
