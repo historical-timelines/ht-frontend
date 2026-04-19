@@ -16,7 +16,7 @@ import {
   semanticConnectorLaneSpanCount,
 } from "../eventLanes";
 import type { Period, Selection, TimelineEvent } from "../types";
-import { WelcomeScreen } from "./WelcomeScreen";
+import { useNavigate } from "react-router-dom";
 import { ViewerLower } from "./ViewerLower";
 import { KeyboardHelpModal } from "./KeyboardHelpModal";
 import "./App.css";
@@ -837,7 +837,7 @@ export default function App() {
     return { laneByIndex: lanes, periodIndicesByLane };
   }, [periods]);
 
-  const [appPhase, setAppPhase] = useState<"welcome" | "viewer">("welcome");
+  const navigate = useNavigate();
   const [sel, setSel] = useState<Selection>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [viewerHeaderCollapsed, setViewerHeaderCollapsed] = useState(false);
@@ -964,8 +964,7 @@ export default function App() {
     return () => mq.removeEventListener("change", sync);
   }, []);
 
-  const enterViewer = useCallback(() => {
-    setAppPhase("viewer");
+  useEffect(() => {
     const tablet = viewerIsTabletViewport();
     setViewerHeaderCollapsed(tablet);
     setTimelineChromeExpanded(!tablet);
@@ -974,15 +973,11 @@ export default function App() {
   /** Sin esto, a veces `html:has(.app--viewer)` no aplica a tiempo; `viewer-phase` fija el layout al viewport sin scroll del documento. */
   useLayoutEffect(() => {
     const root = document.documentElement;
-    if (appPhase === "viewer") {
-      root.classList.add("viewer-phase");
-    } else {
-      root.classList.remove("viewer-phase");
-    }
+    root.classList.add("viewer-phase");
     return () => {
       root.classList.remove("viewer-phase");
     };
-  }, [appPhase]);
+  }, []);
 
   const { eventLabelPlacements, eventLabelMaxLane } = useMemo(
     () => {
@@ -1130,16 +1125,14 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (appPhase !== "viewer") return;
     const scrollEl = timelineScrollRef.current;
     if (!scrollEl) return;
     const handler = (ev: WheelEvent) => onTimelineWheelRef.current(ev);
     scrollEl.addEventListener("wheel", handler, { passive: false });
     return () => scrollEl.removeEventListener("wheel", handler);
-  }, [appPhase]);
+  }, []);
 
   useEffect(() => {
-    if (appPhase !== "viewer") return;
     const scrollEl = timelineScrollRef.current;
     if (!scrollEl) return;
 
@@ -1202,7 +1195,7 @@ export default function App() {
       scrollEl.removeEventListener("touchend", endPinch, true);
       scrollEl.removeEventListener("touchcancel", endPinch, true);
     };
-  }, [appPhase]);
+  }, []);
 
   const onTimelinePointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -1371,10 +1364,6 @@ export default function App() {
     eventStepAvailability.canNext,
   ]);
 
-  if (appPhase === "welcome") {
-    return <WelcomeScreen onEnter={enterViewer} />;
-  }
-
   return (
     <div className="app app--viewer">
       <div
@@ -1434,12 +1423,9 @@ export default function App() {
                     type="button"
                     className="viewer-inicio-btn"
                     onClick={() => {
-                      setAppPhase("welcome");
                       setSel(null);
                       setHelpOpen(false);
-                      const tablet = viewerIsTabletViewport();
-                      setViewerHeaderCollapsed(tablet);
-                      setTimelineChromeExpanded(!tablet);
+                      navigate("/");
                     }}
                   >
                     Inicio
