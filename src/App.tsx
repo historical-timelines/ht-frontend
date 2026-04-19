@@ -355,9 +355,6 @@ const TIMELINE_ZOOM_STEP = 1.085;
 /** Ancho visual de la barra de escala (px); el texto indica el lapso temporal que cubre. */
 const SCALE_BAR_PX = 112;
 
-/** Separación mínima entre centros de etiquetas (% del ancho de la pista) para compartir la misma fila. */
-const AXIS_LABEL_MIN_GAP_PCT = 3.1;
-
 /** Ancho mínimo de una franja decenal (% pista) para mostrar la etiqueta "1820", etc. */
 const AXIS_DECADE_LABEL_MIN_WIDTH_PCT = 2.15;
 
@@ -437,34 +434,141 @@ function formatApproxTimeSpan(ms: number): string {
   return `≈ ${rounded} ${rounded === 1 ? "hora" : "horas"}`;
 }
 
+type AxisMarkLabelAnchor = "start" | "center" | "end";
+
+/** Coherente con .tick-label-year / .tick-label-monthday (rem) en App.css. */
+const AXIS_LABEL_MEASURE_SAFETY = 1.12;
+
+let axisLabelMeasureCtx: CanvasRenderingContext2D | null = null;
+
+function measureAxisMarkWidthsPx(marks: AxisMark[], rootPx: number): number[] {
+  const yearPx = rootPx * 0.68;
+  const monthPx = rootPx * 0.62;
+  const pad = 6;
+  if (typeof document === "undefined") {
+    return marks.map((m) => {
+      const est = Math.max(
+        m.year.length * yearPx * 0.55,
+        m.monthDay.length * monthPx * 0.52
+      );
+      return Math.min(est + pad, 220);
+    });
+  }
+  if (!axisLabelMeasureCtx) {
+    const c = document.createElement("canvas");
+    axisLabelMeasureCtx = c.getContext("2d");
+  }
+  const ctx = axisLabelMeasureCtx;
+  if (!ctx) {
+    return marks.map((m) => {
+      const est = Math.max(
+        m.year.length * yearPx * 0.55,
+        m.monthDay.length * monthPx * 0.52
+      );
+      return Math.min(est + pad, 220);
+    });
+  }
+  return marks.map((m) => {
+    ctx.font = `600 ${yearPx}px "Source Sans 3",system-ui,sans-serif`;
+    const wy = ctx.measureText(m.year).width;
+    ctx.font = `400 ${monthPx}px "Source Sans 3",system-ui,sans-serif`;
+    const wm = ctx.measureText(m.monthDay).width;
+    return Math.min(Math.max(wy, wm) + pad, 240);
+  });
+}
+
+function axisMarkLabelAnchor(sortedIndex: number, n: number, p: number): AxisMarkLabelAnchor {
+  if (n === 1) {
+    return p <= 6 ? "start" : p >= 94 ? "end" : "center";
+  }
+  if (sortedIndex === 0) return "start";
+  if (sortedIndex === n - 1) return "end";
+  return "center";
+}
+
 /**
- * Cuando muchas fechas caen cerca en el eje, reparte etiquetas en filas verticales
- * (lane 0 pegada al trazo, lane 1 más abajo, etc.).
+ * Reparte marcas del eje (año + mes/día) en carriles verticales.
+ * Usa el ancho real del texto en px frente al ancho de la pista: con menos zoom la pista
+ * ocupa menos px y las mismas fechas quedan más juntas en pantalla, así que el intervalo
+ * en % crece y el algoritmo sube etiquetas de carril antes (misma idea que assignEventLabelLanes).
  */
 function assignAxisMarkLanes(
   marks: AxisMark[],
   min: number,
-  max: number
+  max: number,
+  stackWidthPx: number | null,
+  rootPx: number
 ): { mark: AxisMark; p: number; lane: number }[] {
-  const sorted = [...marks].sort(
-    (a, b) => pctOnTrack(a.t, min, max) - pctOnTrack(b.t, min, max)
-  );
-  const lastCenterInLane: number[] = [];
+  const n = marks.length;
+  if (n === 0) return [];
 
-  return sorted.map((mark) => {
-    const p = pctOnTrack(mark.t, min, max);
+  const stackPx =
+    stackWidthPx != null && stackWidthPx > 0 ? stackWidthPx : 520;
+  const widthsPx = measureAxisMarkWidthsPx(marks, rootPx > 0 ? rootPx : 16);
+  /** Hueco mínimo entre cajas; acotado en px para que no desaparezca en pistas anchas. */
+  const gapPct = Math.max(0.45, (10 / stackPx) * 100);
+
+  const order = marks
+    .map((mark, i) => ({
+      mark,
+      p: pctOnTrack(mark.t, min, max),
+      baseWidthPx: widthsPx[i]! * AXIS_LABEL_MEASURE_SAFETY,
+    }))
+    .sort((a, b) => a.p - b.p || a.mark.t - b.mark.t);
+
+  const lanes: [number, number][][] = [];
+  const out: { mark: AxisMark; p: number; lane: number }[] = [];
+
+  for (let s = 0; s < order.length; s++) {
+    const { mark, p, baseWidthPx } = order[s]!;
+    const anchor = axisMarkLabelAnchor(s, order.length, p);
+
+    const rawSpanPct = (baseWidthPx / stackPx) * 100 + 0.12;
+    let spanPct = Math.min(rawSpanPct, 50);
+    if (anchor === "start") {
+      spanPct = Math.min(spanPct, Math.max(0.35, 100 - p - 0.15));
+    } else if (anchor === "end") {
+      spanPct = Math.min(spanPct, Math.max(0.35, p - 0.15));
+    } else {
+      spanPct = Math.min(
+        spanPct,
+        Math.max(0.35, 2 * Math.min(p, 100 - p) - 0.25)
+      );
+    }
+
+    let left: number;
+    let right: number;
+    if (anchor === "start") {
+      left = p;
+      right = p + spanPct;
+    } else if (anchor === "end") {
+      right = p;
+      left = p - spanPct;
+    } else {
+      left = p - spanPct / 2;
+      right = p + spanPct / 2;
+    }
+
+    const interval: [number, number] = [left, right];
+
     let lane = 0;
     for (;; lane++) {
-      if (lane >= lastCenterInLane.length) {
-        lastCenterInLane.push(p);
-        return { mark, p, lane };
+      if (lane >= lanes.length) {
+        lanes.push([]);
       }
-      if (p - lastCenterInLane[lane] >= AXIS_LABEL_MIN_GAP_PCT) {
-        lastCenterInLane[lane] = p;
-        return { mark, p, lane };
+      const occupied = lanes[lane]!;
+      const clash = occupied.some((iv) =>
+        labelIntervalsOverlap(interval, iv, gapPct)
+      );
+      if (!clash) {
+        occupied.push(interval);
+        out.push({ mark, p, lane });
+        break;
       }
     }
-  });
+  }
+
+  return out;
 }
 
 type EventLabelAnchor = "start" | "center" | "end";
@@ -706,11 +810,6 @@ export default function App() {
     [periods, events]
   );
 
-  const axisMarksPlaced = useMemo(
-    () => assignAxisMarkLanes(axisMarks, min, max),
-    [axisMarks, min, max]
-  );
-
   const axisYearMicroTicks = useMemo(
     () => yearAxisMicroTicks(min, max),
     [min, max]
@@ -719,12 +818,6 @@ export default function App() {
   const axisDecadeBandRects = useMemo(
     () => axisDecadeBands(min, max),
     [min, max]
-  );
-
-  const axisMaxLane = useMemo(
-    () =>
-      axisMarksPlaced.reduce((m, x) => Math.max(m, x.lane), 0),
-    [axisMarksPlaced]
   );
 
   const { laneByIndex, periodIndicesByLane } = useMemo(() => {
@@ -758,6 +851,17 @@ export default function App() {
     () =>
       typeof window !== "undefined" &&
       window.matchMedia("(pointer: coarse)").matches
+  );
+
+  const axisMarksPlaced = useMemo(
+    () => assignAxisMarkLanes(axisMarks, min, max, stackWidthPx, layoutProbe.rootPx),
+    [axisMarks, min, max, stackWidthPx, layoutProbe.rootPx]
+  );
+
+  const axisMaxLane = useMemo(
+    () =>
+      axisMarksPlaced.reduce((m, x) => Math.max(m, x.lane), 0),
+    [axisMarksPlaced]
   );
 
   useEffect(() => {

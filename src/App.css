@@ -733,7 +733,9 @@
 }
 
 .timeline-stack--compact .axis {
-  --axis-lane-step: 1.82em;
+  --axis-lane-step: calc(
+    0.68rem * 1.18 + 0.62rem * 1.18 + 0.12rem + 0.26rem
+  );
   min-height: calc(2.35rem + var(--axis-max-lane, 0) * var(--axis-lane-step));
   margin-bottom: var(--timeline-axis-gap);
 }
@@ -1162,8 +1164,13 @@
   position: relative;
   /* Barra del eje (franjas + “1820”); un poco más alta que antes para que el texto no se corte */
   --axis-bar-h: 10px;
-  /* Altura base + filas extra: cada tick es año + mes/día (2 líneas); --axis-max-lane desde App.tsx */
-  --axis-lane-step: 2.42em;
+  /*
+   * Paso vertical entre carriles de fecha: en rem como .tick-label-year / .tick-label-monthday
+   * (no en em del padre), más un respiro fijo para que filas consecutivas no se rocen.
+   */
+  --axis-lane-step: calc(
+    0.68rem * 1.18 + 0.62rem * 1.18 + 0.12rem + 0.34rem
+  );
   min-height: calc(3.35rem + var(--axis-max-lane, 0) * var(--axis-lane-step));
   margin-bottom: var(--timeline-axis-gap);
   border-bottom: none;
@@ -1313,7 +1320,7 @@
    * extenderse mal hacia la pista. min-height ≈ carril + tick + ~2 líneas de texto.
    */
   min-height: calc(
-    var(--tick-line-h, 12px) + 4px + var(--tick-lane, 0) * var(--axis-lane-step, 2.42em) + 2.55em
+    var(--tick-line-h, 12px) + 4px + var(--tick-lane, 0) * var(--axis-lane-step, 2rem) + 2.55em
   );
   overflow: visible;
 }
@@ -1331,13 +1338,13 @@
   transform: translateX(-50%);
   /* Borde inferior del bloque por encima del trazo; más carril = más arriba (evita solape entre ticks cercanos) */
   bottom: calc(
-    var(--tick-line-h, 12px) + 4px + var(--tick-lane, 0) * var(--axis-lane-step, 2.42em)
+    var(--tick-line-h, 12px) + 4px + var(--tick-lane, 0) * var(--axis-lane-step, 2rem)
   );
   margin-top: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.08em;
+  gap: 0.1rem;
   line-height: 1.12;
   text-align: center;
 }
@@ -1351,7 +1358,7 @@
   transform: translateX(-50%);
   width: 0;
   height: calc(
-    var(--tick-line-h, 12px) + 4px + var(--tick-lane, 0) * var(--axis-lane-step, 2.42em)
+    var(--tick-line-h, 12px) + 4px + var(--tick-lane, 0) * var(--axis-lane-step, 2rem)
   );
   border-left: 1px dashed color-mix(in srgb, var(--muted) 75%, transparent);
   opacity: 0.28;
