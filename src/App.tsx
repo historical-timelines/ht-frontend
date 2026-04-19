@@ -266,6 +266,87 @@ function mergeAxisMarks(
   return out;
 }
 
+/** 0 | 1 según la década (años …0–…9), estable con años negativos. */
+function decadeStripeIndex(decadeStartYear: number): 0 | 1 {
+  const k = Math.floor(decadeStartYear / 10);
+  return (((k % 2) + 2) % 2) as 0 | 1;
+}
+
+/** Franjas [1 ene D, 1 ene D+10) recortadas al rango del eje, para colores alternos. */
+function axisDecadeBands(
+  minMs: number,
+  maxMs: number
+): {
+  key: string;
+  leftPct: number;
+  widthPct: number;
+  stripe: 0 | 1;
+  decadeLabel: string;
+}[] {
+  if (!Number.isFinite(minMs) || !Number.isFinite(maxMs) || maxMs <= minMs) {
+    return [];
+  }
+  const yMin = new Date(minMs).getUTCFullYear();
+  const yMax = new Date(maxMs).getUTCFullYear();
+  const dStart = Math.floor(yMin / 10) * 10;
+  const out: {
+    key: string;
+    leftPct: number;
+    widthPct: number;
+    stripe: 0 | 1;
+    decadeLabel: string;
+  }[] = [];
+  for (let D = dStart; D <= yMax; D += 10) {
+    const t0 = Date.UTC(D, 0, 1);
+    const t1 = Date.UTC(D + 10, 0, 1);
+    const segLo = Math.max(minMs, t0);
+    const segHi = Math.min(maxMs, t1);
+    if (segHi <= segLo) continue;
+    const leftPct = pctOnTrack(segLo, minMs, maxMs);
+    const rightPct = pctOnTrack(segHi, minMs, maxMs);
+    const widthPct = Math.max(0, rightPct - leftPct);
+    if (widthPct <= 0) continue;
+    out.push({
+      key: `band-${D}`,
+      leftPct,
+      widthPct,
+      stripe: decadeStripeIndex(D),
+      decadeLabel: String(D),
+    });
+  }
+  return out;
+}
+
+/**
+ * Instantes del 1 ene (UTC) dentro de [minMs, maxMs] para micro-marcas del eje;
+ * `major`: cada 10 años el trazo es un poco más alto.
+ */
+function yearAxisMicroTicks(
+  minMs: number,
+  maxMs: number
+): { t: number; major: boolean; stripe: 0 | 1 }[] {
+  if (!Number.isFinite(minMs) || !Number.isFinite(maxMs) || maxMs <= minMs) {
+    return [];
+  }
+  let yStart = new Date(minMs).getUTCFullYear();
+  const firstJan = Date.UTC(yStart, 0, 1);
+  if (firstJan < minMs) yStart += 1;
+  const yEnd = new Date(maxMs).getUTCFullYear();
+  const out: { t: number; major: boolean; stripe: 0 | 1 }[] = [];
+  for (let y = yStart; y <= yEnd; y++) {
+    const t = Date.UTC(y, 0, 1);
+    if (t >= minMs && t <= maxMs) {
+      const decadeStart = Math.floor(y / 10) * 10;
+      out.push({
+        t,
+        major: y % 10 === 0,
+        stripe: decadeStripeIndex(decadeStart),
+      });
+    }
+  }
+  return out;
+}
+
 /** Zoom horizontal del timeline (Ctrl + rueda). 1 = ancho base en CSS. */
 const TIMELINE_ZOOM_MIN = 0.35;
 const TIMELINE_ZOOM_MAX = 14;
@@ -276,6 +357,9 @@ const SCALE_BAR_PX = 112;
 
 /** Separación mínima entre centros de etiquetas (% del ancho de la pista) para compartir la misma fila. */
 const AXIS_LABEL_MIN_GAP_PCT = 3.1;
+
+/** Ancho mínimo de una franja decenal (% pista) para mostrar la etiqueta "1820", etc. */
+const AXIS_DECADE_LABEL_MIN_WIDTH_PCT = 2.15;
 
 /** Viewport “tablet” para el visor: barras colapsadas al entrar. */
 const VIEWER_TABLET_MQ = "(max-width: 1024px)";
@@ -625,6 +709,16 @@ export default function App() {
   const axisMarksPlaced = useMemo(
     () => assignAxisMarkLanes(axisMarks, min, max),
     [axisMarks, min, max]
+  );
+
+  const axisYearMicroTicks = useMemo(
+    () => yearAxisMicroTicks(min, max),
+    [min, max]
+  );
+
+  const axisDecadeBandRects = useMemo(
+    () => axisDecadeBands(min, max),
+    [min, max]
   );
 
   const axisMaxLane = useMemo(
@@ -1312,6 +1406,56 @@ export default function App() {
                 } as CSSProperties
               }
             >
+              <div className="axis-decade-bands" aria-hidden>
+                {axisDecadeBandRects.map(({ key, leftPct, widthPct, stripe }) => (
+                  <span
+                    key={key}
+                    className={
+                      stripe === 0
+                        ? "axis-decade-band axis-decade-band--a"
+                        : "axis-decade-band axis-decade-band--b"
+                    }
+                    style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+                  />
+                ))}
+              </div>
+              <div className="axis-decade-labels" aria-hidden>
+                {axisDecadeBandRects.map(
+                  ({ key, leftPct, widthPct, stripe, decadeLabel }) =>
+                    widthPct >= AXIS_DECADE_LABEL_MIN_WIDTH_PCT ? (
+                      <span
+                        key={`lbl-${key}`}
+                        className={
+                          stripe === 0
+                            ? "axis-decade-label axis-decade-label--a"
+                            : "axis-decade-label axis-decade-label--b"
+                        }
+                        style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
+                      >
+                        {decadeLabel}
+                      </span>
+                    ) : null
+                )}
+              </div>
+              <div className="axis-micro-ticks" aria-hidden>
+                {axisYearMicroTicks.map(({ t, major, stripe }) => (
+                  <span
+                    key={t}
+                    className={[
+                      "axis-micro-tick",
+                      major ? "axis-micro-tick--decade" : "",
+                      major
+                        ? stripe === 0
+                          ? "axis-micro-tick--stripe-a"
+                          : "axis-micro-tick--stripe-b"
+                        : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    style={{ left: `${pctOnTrack(t, min, max)}%` }}
+                  />
+                ))}
+              </div>
               {axisMarksPlaced.map(({ mark, p, lane }, i) => {
                 const isFirst = i === 0;
                 const isLast = i === axisMarksPlaced.length - 1;

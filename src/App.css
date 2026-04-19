@@ -347,7 +347,8 @@
 
 .viewer-shell--has-selection .chart.chart-bleed.chart--viewer {
   padding-bottom: 0.22rem;
-  padding-top: 0.22rem;
+  /* Aire arriba sin inflar tanto el alto total (evita scrollbar vertical en .viewer-chart-wrap) */
+  padding-top: clamp(0.26rem, 0.9vw, 0.45rem);
 }
 
 /* Menos aire entre eje y carriles cuando el visor ya ocupa la pantalla */
@@ -399,7 +400,7 @@
 .chart.chart-bleed.chart--viewer {
   padding-left: clamp(0.28rem, 0.9vw, 0.55rem);
   padding-right: clamp(0.28rem, 0.9vw, 0.55rem);
-  padding-top: 0.28rem;
+  padding-top: clamp(0.3rem, 0.95vw, 0.5rem);
   padding-bottom: clamp(0.42rem, 1.2vw, 0.72rem);
 }
 
@@ -409,7 +410,7 @@
 
 @media (max-width: 90rem) {
   .chart.chart-bleed.chart--viewer {
-    padding-top: 0.2rem;
+    padding-top: clamp(0.26rem, 0.85vw, 0.44rem);
     padding-bottom: clamp(0.32rem, 1vw, 0.55rem);
   }
 
@@ -655,6 +656,9 @@
 }
 
 .timeline-stack {
+  /* Aire lateral: evita que bordes redondeados / última barra de período rocen el clip del visor */
+  padding-left: 0.42rem;
+  padding-right: 0.55rem;
   --timeline-axis-gap: 0.85rem;
   /* Solo el disco en el flex; el toque mínimo lo cumple .event-hit (punto + título). */
   --event-dot-layout-size: 14px;
@@ -1156,6 +1160,8 @@
 
 .axis {
   position: relative;
+  /* Barra del eje (franjas + “1820”); un poco más alta que antes para que el texto no se corte */
+  --axis-bar-h: 10px;
   /* Altura base + filas extra: cada tick es año + mes/día (2 líneas); --axis-max-lane desde App.tsx */
   --axis-lane-step: 2.42em;
   min-height: calc(3.35rem + var(--axis-max-lane, 0) * var(--axis-lane-step));
@@ -1172,7 +1178,8 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: 6px;
+  height: var(--axis-bar-h);
+  z-index: 0;
   background: var(--border);
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent),
@@ -1180,10 +1187,118 @@
   border-radius: 3px;
 }
 
+.axis-decade-bands {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--axis-bar-h);
+  z-index: 1;
+  pointer-events: none;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.axis-decade-band {
+  position: absolute;
+  bottom: 0;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.axis-decade-band--a {
+  background: color-mix(in srgb, var(--accent) 32%, var(--border) 68%);
+}
+
+.axis-decade-band--b {
+  background: color-mix(in srgb, var(--surface) 55%, var(--border) 45%);
+}
+
+.axis-decade-labels {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--axis-bar-h);
+  z-index: 3;
+  pointer-events: none;
+  border-radius: 3px;
+  /* hidden: overflow-y:visible hacía crecer el scroll del visor (timeline-scroll en visible) */
+  overflow: hidden;
+}
+
+.axis-decade-label {
+  position: absolute;
+  bottom: 0;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  overflow: hidden;
+  font-size: 0.54rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.axis-decade-label--a {
+  color: color-mix(in srgb, var(--text) 82%, var(--accent) 18%);
+  text-shadow:
+    0 0 4px color-mix(in srgb, var(--surface) 92%, var(--border) 8%),
+    0 0 2px var(--surface);
+}
+
+.axis-decade-label--b {
+  color: color-mix(in srgb, var(--text) 78%, var(--muted) 22%);
+  text-shadow:
+    0 0 4px color-mix(in srgb, var(--surface) 92%, var(--border) 8%),
+    0 0 2px var(--surface);
+}
+
+.axis-micro-ticks {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--axis-bar-h);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.axis-micro-tick {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 1px;
+  height: 3px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--text) 42%, transparent);
+  opacity: 0.55;
+}
+
+.axis-micro-tick--decade {
+  height: 5px;
+  opacity: 0.88;
+}
+
+.axis-micro-tick--decade.axis-micro-tick--stripe-a {
+  background: color-mix(in srgb, var(--accent) 58%, var(--text) 42%);
+}
+
+.axis-micro-tick--decade.axis-micro-tick--stripe-b {
+  background: color-mix(in srgb, var(--muted) 70%, var(--text) 30%);
+}
+
 .tick {
   position: absolute;
   transform: translateX(-50%);
-  bottom: 6px;
+  bottom: var(--axis-bar-h, 10px);
+  z-index: 4;
   display: flex;
   flex-direction: column;
   align-items: center;
