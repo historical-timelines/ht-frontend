@@ -1528,6 +1528,13 @@
   opacity: 0.22;
 }
 
+.period-connector--selected {
+  opacity: 0.7;
+  border-left-width: 1.5px;
+  border-left-color: var(--accent) !important;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
 .track-bg {
   position: absolute;
   inset: 0;

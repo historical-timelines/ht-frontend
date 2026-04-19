@@ -1573,8 +1573,11 @@ export default function App() {
                   edgeClass = "tick--end";
                 }
                 const isTickSelected =
-                    sel?.kind === "event" &&
-                    sel.item.date.getTime() === mark.t;
+                  (sel?.kind === "event" &&
+                    sel.item.date.getTime() === mark.t) ||
+                  (sel?.kind === "period" &&
+                    (sel.item.start.getTime() === mark.t ||
+                      sel.item.end.getTime() === mark.t));
                 const tickEvent = eventsSorted.find(
                   (e) => e.date.getTime() === mark.t
                 );
@@ -1612,10 +1615,11 @@ export default function App() {
                   const h = `calc(var(--timeline-axis-gap) + ${centerRem}rem)`;
                   const startLeft = pctOnTrack(p.start.getTime(), min, max);
                   const endLeft = pctOnTrack(p.end.getTime(), min, max);
+                  const isConnActive = activePeriodForTimeline === p;
                   return [
                     <div
                       key={`${p.title}-start-conn`}
-                      className="period-connector"
+                      className={`period-connector${isConnActive ? " period-connector--selected" : ""}`}
                       style={{
                         left: `${startLeft}%`,
                         height: h,
@@ -1624,7 +1628,7 @@ export default function App() {
                     />,
                     <div
                       key={`${p.title}-end-conn`}
-                      className="period-connector"
+                      className={`period-connector${isConnActive ? " period-connector--selected" : ""}`}
                       style={{
                         left: `${endLeft}%`,
                         height: h,
