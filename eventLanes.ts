@@ -15,7 +15,12 @@ export const EVENT_LANE_ORDER: readonly EventLaneId[] = [
   "diplomatico",
 ] as const;
 
-export type LaneGlyphId = "landmark" | "shield" | "coins" | "users" | "globe";
+export type LaneGlyphId =
+  | "landmark"
+  | "shield"
+  | "coins"
+  | "users"
+  | "globe";
 
 export const LANE_UI: Record<
   EventLaneId,
@@ -23,9 +28,9 @@ export const LANE_UI: Record<
 > = {
   politico: { label: "Político", color: "#4c6ef5", glyph: "landmark" },
   militar: { label: "Militar", color: "#c92a2a", glyph: "shield" },
-  economico: { label: "Económico", color: "#2b8a3e", glyph: "coins" },
+  economico: { label: "Económico", color: "#EAB308", glyph: "coins" },
   social: { label: "Social", color: "#9c36b5", glyph: "users" },
-  diplomatico: { label: "Diplomático", color: "#0b7285", glyph: "globe" },
+  diplomatico: { label: "Diplomático", color: "#2b8a3e", glyph: "globe" },
 };
 
 /** Primer carril en orden visual que el evento ocupa (etiqueta + foco principal). */

@@ -5,6 +5,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
+import type { StudyMode } from "../causality";
 import { lanesInDisplayOrder, LANE_UI } from "../eventLanes";
 import type { Period, TimelineEvent, Selection } from "../types";
 import { LaneGlyph } from "./LaneGlyph";
@@ -23,6 +24,8 @@ type ViewerLowerProps = {
   periods: Period[];
   events: TimelineEvent[];
   sel: Selection;
+  studyMode: StudyMode;
+  eventsByTitle: Map<string, TimelineEvent>;
   activePeriodForTimeline: Period | null;
   onSelectPeriod: (p: Period) => void;
   onSelectEvent: (e: TimelineEvent) => void;
@@ -32,6 +35,8 @@ export function ViewerLower({
   periods,
   events,
   sel,
+  studyMode,
+  eventsByTitle,
   activePeriodForTimeline,
   onSelectPeriod,
   onSelectEvent,
@@ -257,11 +262,87 @@ export function ViewerLower({
                 ))}
               </div>
               <p className="detail-meta">{formatDate(sel.item.date)}</p>
-              <ul className="detail-items">
-                {sel.item.items.map((text, i) => (
-                  <li key={i}>{text}</li>
-                ))}
-              </ul>
+              {studyMode !== "exam" && sel.item.importance ? (
+                <p className="detail-importance muted">
+                  Peso:{" "}
+                  {sel.item.importance === "primary"
+                    ? "central"
+                    : sel.item.importance === "secondary"
+                      ? "secundario"
+                      : "contextual"}
+                </p>
+              ) : null}
+              {studyMode === "exam" ? (
+                <p className="detail-exam-hint muted">
+                  Modo examen: los puntos detallados están ocultos para practicar
+                  recuperación activa. Usá el título y la fecha como ancla.
+                </p>
+              ) : null}
+              {studyMode === "causal" ? (
+                <p className="detail-causal-hint muted">
+                  Modo causal: en la línea se resaltan cadenas de antecedentes y
+                  consecuencias respecto del evento elegido.
+                </p>
+              ) : null}
+              {studyMode !== "exam" ? (
+                <ul className="detail-items">
+                  {sel.item.items.map((text, i) => (
+                    <li key={i}>{text}</li>
+                  ))}
+                </ul>
+              ) : null}
+              {studyMode !== "exam" &&
+              (sel.item.causes?.length ?? 0) > 0 ? (
+                <section className="detail-causal detail-causal--causes">
+                  <h3 className="detail-causal-title">Antecedentes</h3>
+                  <ul className="detail-causal-list">
+                    {sel.item.causes!.map((title) => {
+                      const ev = eventsByTitle.get(title);
+                      return (
+                        <li key={title}>
+                          {ev ? (
+                            <button
+                              type="button"
+                              className="linkish detail-causal-link"
+                              onClick={() => onSelectEvent(ev)}
+                            >
+                              {title}
+                            </button>
+                          ) : (
+                            <span className="muted">{title}</span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              ) : null}
+              {studyMode !== "exam" &&
+              (sel.item.consequences?.length ?? 0) > 0 ? (
+                <section className="detail-causal detail-causal--effects">
+                  <h3 className="detail-causal-title">Consecuencias</h3>
+                  <ul className="detail-causal-list">
+                    {sel.item.consequences!.map((title) => {
+                      const ev = eventsByTitle.get(title);
+                      return (
+                        <li key={title}>
+                          {ev ? (
+                            <button
+                              type="button"
+                              className="linkish detail-causal-link"
+                              onClick={() => onSelectEvent(ev)}
+                            >
+                              {title}
+                            </button>
+                          ) : (
+                            <span className="muted">{title}</span>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              ) : null}
               {sel.item.links?.length ? (
                 <ul className="links">
                   {sel.item.links.map((url) => (

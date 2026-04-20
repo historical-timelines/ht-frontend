@@ -153,6 +153,9 @@ export const timelineHistoriaArgentina: Timeline = {
     events: [
         {
             title: "Revolución de Mayo",
+            importance: "primary",
+            summary:
+                "Primer gobierno criollo en Buenos Aires: ruptura con el virreinato y apertura de un proceso revolucionario.",
             lanes: ["politico"],
             items: [
                 "Habilitado por la invasión napoleónica a España en 1808 que crea vacío de poder.",
@@ -165,6 +168,8 @@ export const timelineHistoriaArgentina: Timeline = {
         },
         {
             title: "Declaración de Independencia",
+            importance: "primary",
+            summary: "Acto formal de ruptura con la monarquía española en el Congreso de Tucumán.",
             lanes: ["politico", "diplomatico"],
             items: ["La Argentina se declara independiente del Reino de España."],
             date: utcDate(1816, 7, 9),
@@ -223,7 +228,9 @@ export const timelineHistoriaArgentina: Timeline = {
         },
         {
             title: "Vuelta de Obligado",
-            lanes: ["militar", "diplomatico", "politico"],
+            summary:
+                "Resistencia armada al paso de la escuadra anglo-francesa: conflicto por el control de los ríos y el comercio.",
+            lanes: ["militar", "politico", "diplomatico"],
             items: [
                 "Enfrentamiento contra la flota anglo-francesa en el río Paraná.",
                 "Defensa de la soberanía sobre los ríos interiores.",
@@ -234,7 +241,10 @@ export const timelineHistoriaArgentina: Timeline = {
         },
         {
             title: "Tratados que ponen fin a los bloqueos anglo-franceses",
-            lanes: ["diplomatico", "politico", "economico"],
+            causes: ["Vuelta de Obligado"],
+            summary:
+                "Cierre diplomático de la crisis del Plata: reconocimiento de la navegación y apertura comercial.",
+            lanes: ["politico", "economico", "diplomatico"],
             items: [
                 "Acuerdos con Francia e Inglaterra que reconocen la soberanía argentina sobre los ríos.",
                 "Fin de la intervención directa de potencias extranjeras.",
@@ -245,7 +255,11 @@ export const timelineHistoriaArgentina: Timeline = {
         },
         {
             title: "Batalla de Caseros",
+            importance: "primary",
+            summary:
+                "Caída de Rosas: fin de la hegemonía porteña unilateral y paso hacia un pacto entre provincias.",
             lanes: ["militar", "politico"],
+            consequences: ["Acuerdo de San Nicolás"],
             items: [
                 "Derrota de Rosas frente a las fuerzas de Urquiza.",
                 "Fin del régimen rosista basado en la concentración del poder en Buenos Aires.",
@@ -257,6 +271,9 @@ export const timelineHistoriaArgentina: Timeline = {
         },
         {
             title: "Acuerdo de San Nicolás",
+            causes: ["Batalla de Caseros"],
+            consequences: ["Constitución de 1853"],
+            summary: "Pacto federal que convoca al constituyente y delega liderazgo en Urquiza.",
             lanes: ["politico"],
             items: [
                 "Pacto entre las provincias impulsado por Urquiza tras la caída de Rosas.",
@@ -269,6 +286,9 @@ export const timelineHistoriaArgentina: Timeline = {
         },
         {
             title: "Constitución de 1853",
+            causes: ["Acuerdo de San Nicolás"],
+            consequences: ["Incorporación de Buenos Aires a la Constitución Nacional"],
+            summary: "Marco institucional del Estado nacional; Buenos Aires queda fuera hasta 1860.",
             lanes: ["politico"],
             items: [
                 "Define un marco con instituciones centralizadas y un Estado nacional.",
@@ -290,6 +310,8 @@ export const timelineHistoriaArgentina: Timeline = {
         },
         {
             title: "Incorporación de Buenos Aires a la Constitución Nacional",
+            causes: ["Constitución de 1853", "Batalla de Cepeda"],
+            summary: "Reincorporación porteña al orden nacional tras el pacto de San José de Flores.",
             lanes: ["politico"],
             items: [
                 "Buenos Aires acepta integrarse a la Confederación tras el Pacto de San José de Flores.",
@@ -301,8 +323,13 @@ export const timelineHistoriaArgentina: Timeline = {
         },
         {
             title: "Batalla de Pavón",
+            importance: "primary",
+            summary:
+                "Victoria bonaerense sobre la Confederación: Urquiza no profunda el choque; triunfo político del Estado de Buenos Aires.",
             /* Un solo carril: con dos, el visor dibuja dos marcas el mismo día (militar + político). */
             lanes: ["militar"],
+            causes: ["Batalla de Cepeda"],
+            consequences: ["Asunción de Bartolomé Mitre"],
             items: [
                 "Enfrentamiento entre Buenos Aires y la Confederación.",
                 "El repliegue de Urquiza permite la victoria política porteña.",
@@ -312,7 +339,12 @@ export const timelineHistoriaArgentina: Timeline = {
         },
         {
             title: "Asunción de Bartolomé Mitre",
+            importance: "primary",
+            summary:
+                "Presidencia que expresa la hegemonía porteña y la organización efectiva del Estado nacional unificado.",
             lanes: ["politico"],
+            causes: ["Batalla de Pavón"],
+            consequences: ["Expansión ferroviaria"],
             items: [
                 "Primer presidente del país unificado tras la derrota de la Confederación.",
                 "Buenos Aires impone su proyecto político e institucional al resto del territorio.",
@@ -322,6 +354,8 @@ export const timelineHistoriaArgentina: Timeline = {
         },
         {
             title: "Expansión ferroviaria",
+            causes: ["Asunción de Bartolomé Mitre"],
+            summary: "Integración material del territorio al puerto y al modelo exportador (capital extranjero).",
             lanes: ["economico", "politico"],
             items: [
                 "Desarrollo de la red ferroviaria con capital británico.",
@@ -332,6 +366,7 @@ export const timelineHistoriaArgentina: Timeline = {
         },
         {
             title: "Guerra del Paraguay",
+            summary: "Coalición regional (Triple Alianza): despliegue del ejército nacional y posición en el Plata.",
             lanes: ["militar", "politico", "diplomatico"],
             items: [
                 "Conflicto regional que consolida el rol militar del Estado argentino.",

@@ -11,9 +11,16 @@ import {
 } from "react";
 import { timelineHistoriaArgentina } from "../timelineHistoriaArgentina";
 import {
+  causalEdgesInSet,
+  causalHighlightSet,
+  eventByTitleMap,
+  type StudyMode,
+} from "../causality";
+import {
   EVENT_LANE_ORDER,
   LANE_UI,
   semanticConnectorLaneSpanCount,
+  type EventLaneId,
 } from "../eventLanes";
 import type { Period, Selection, TimelineEvent } from "../types";
 import { useNavigate } from "react-router-dom";
@@ -72,6 +79,12 @@ function pctOnTrack(time: number, min: number, max: number): number {
   const span =
     100 - TIMELINE_TRACK_INSET_LEFT_PCT - TIMELINE_TRACK_INSET_RIGHT_PCT;
   return TIMELINE_TRACK_INSET_LEFT_PCT + u * span;
+}
+
+function eventPointerTitle(e: TimelineEvent, mode: StudyMode): string {
+  if (mode === "exam") return e.title;
+  const tail = e.summary ?? e.items[0];
+  return tail && tail !== e.title ? `${e.title} — ${tail}` : e.title;
 }
 
 /** Texto legible sobre un fondo en hex (#rgb o #rrggbb). */
@@ -856,6 +869,15 @@ export default function App() {
   /** Zoom, escala del eje y navegación de eventos (panel inferior del timeline). */
   const [timelineChromeExpanded, setTimelineChromeExpanded] = useState(false);
   const [timelineZoom, setTimelineZoom] = useState(1);
+  const [studyMode, setStudyMode] = useState<StudyMode>("normal");
+  const [laneVisibility, setLaneVisibility] = useState<
+    Record<EventLaneId, boolean>
+  >(
+    () =>
+      Object.fromEntries(
+        EVENT_LANE_ORDER.map((id) => [id, true])
+      ) as Record<EventLaneId, boolean>
+  );
   const [stackWidthPx, setStackWidthPx] = useState<number | null>(null);
   const [layoutProbe, setLayoutProbe] = useState(() => ({
     vminPx:
@@ -1014,6 +1036,40 @@ export default function App() {
     return o as CSSProperties;
   }, []);
 
+  const eventsByTitle = useMemo(
+    () => eventByTitleMap(eventsSorted),
+    [eventsSorted]
+  );
+
+  const causalHighlight = useMemo(() => {
+    if (sel?.kind !== "event") return new Set<TimelineEvent>();
+    return causalHighlightSet(sel.item, eventsByTitle, studyMode);
+  }, [sel, eventsByTitle, studyMode]);
+
+  const causalChainSet = useMemo(() => {
+    const s = new Set(causalHighlight);
+    if (sel?.kind === "event") s.add(sel.item);
+    return s;
+  }, [causalHighlight, sel]);
+
+  const causalitySvgEdges = useMemo(() => {
+    if (studyMode === "exam") return [];
+    return causalEdgesInSet(causalChainSet, eventsByTitle);
+  }, [studyMode, causalChainSet, eventsByTitle]);
+
+  const eventPassesLaneFilter = useCallback(
+    (ev: TimelineEvent) => ev.lanes.some((l) => laneVisibility[l]),
+    [laneVisibility]
+  );
+
+  const toggleLaneVisibility = useCallback((id: EventLaneId) => {
+    setLaneVisibility((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      if (!EVENT_LANE_ORDER.some((l) => next[l])) return prev;
+      return next;
+    });
+  }, []);
+
   useLayoutEffect(() => {
     if (sel == null) return;
     const el =
@@ -1031,7 +1087,12 @@ export default function App() {
     });
   }, [sel, timelineZoom]);
 
-  const viewerShellClass = sel === null ? "" : "viewer-shell--sel-compact";
+  const viewerShellClass = [
+    sel === null ? "" : "viewer-shell--sel-compact",
+    studyMode === "causal" ? "viewer-shell--study-causal" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const rangeMs = max - min;
 
@@ -1391,6 +1452,7 @@ export default function App() {
                 className="viewer-toolbar"
                 aria-label="Barra del visor"
               >
+                <div className="viewer-toolbar-top">
                 <div className="viewer-toolbar-text">
                   <h1 className="viewer-toolbar-title">
                     Historia Argentina · línea de tiempo
@@ -1488,6 +1550,63 @@ export default function App() {
                       />
                     </svg>
                   </button>
+                </div>
+                </div>
+                <div
+                  className="viewer-study-toolbar"
+                  role="toolbar"
+                  aria-label="Modo de estudio y carriles"
+                >
+                  <div
+                    className="viewer-study-modes"
+                    role="radiogroup"
+                    aria-label="Modo de estudio"
+                  >
+                    {(
+                      [
+                        ["normal", "Normal"],
+                        ["exam", "Examen"],
+                        ["causal", "Causal"],
+                      ] as const
+                    ).map(([id, label]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        role="radio"
+                        aria-checked={studyMode === id}
+                        className={`viewer-study-mode-btn${studyMode === id ? " viewer-study-mode-btn--active" : ""}`.trim()}
+                        onClick={() => setStudyMode(id)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <div
+                    className="viewer-lane-filters"
+                    aria-label="Visibilidad por carril semántico"
+                  >
+                    {EVENT_LANE_ORDER.map((laneId) => (
+                      <button
+                        key={laneId}
+                        type="button"
+                        className="viewer-lane-filter"
+                        aria-pressed={laneVisibility[laneId]}
+                        title={
+                          laneVisibility[laneId]
+                            ? `Ocultar carril ${LANE_UI[laneId].label}`
+                            : `Mostrar carril ${LANE_UI[laneId].label}`
+                        }
+                        style={
+                          {
+                            "--lane-chip-fg": LANE_UI[laneId].color,
+                          } as CSSProperties
+                        }
+                        onClick={() => toggleLaneVisibility(laneId)}
+                      >
+                        {LANE_UI[laneId].label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </header>
             </div>
@@ -1729,13 +1848,17 @@ export default function App() {
 
               <div className="events-stack">
                 {EVENT_LANE_ORDER.map((laneId) => {
-                  const eventsHere = eventsSorted.filter((e) =>
-                    e.lanes.includes(laneId)
+                  const laneOn = laneVisibility[laneId];
+                  const eventsHere = eventsSorted.filter(
+                    (e) =>
+                      e.lanes.includes(laneId) &&
+                      laneOn &&
+                      eventPassesLaneFilter(e)
                   );
                   return (
                     <div
                       key={laneId}
-                      className="events-lane events-lane--semantic"
+                      className={`events-lane events-lane--semantic${laneOn ? "" : " events-lane--filtered-off"}`.trim()}
                       data-lane={laneId}
                     >
                       <div className="events-lane__caption">
@@ -1755,11 +1878,16 @@ export default function App() {
                         {eventsHere.map((ev) => {
                           const isEventActive =
                             sel?.kind === "event" && sel.item === ev;
+                          const isRelated =
+                            studyMode !== "exam" &&
+                            sel?.kind === "event" &&
+                            causalHighlight.has(ev) &&
+                            sel.item !== ev;
                           const p = pctOnTrack(ev.date.getTime(), min, max);
                           return (
                             <div
                               key={`${laneId}-${ev.title}-${ev.date.toISOString()}`}
-                              className={`event-marker event-marker--lane-dot ${isEventActive ? "event-marker--selected" : ""}`}
+                              className={`event-marker event-marker--lane-dot ${isEventActive ? "event-marker--selected" : ""}${isRelated ? " event-marker--related" : ""}`.trim()}
                               style={
                                 {
                                   left: `${p}%`,
@@ -1775,7 +1903,7 @@ export default function App() {
                                 onClick={() =>
                                   setSel({ kind: "event", item: ev })
                                 }
-                                title={ev.title}
+                                title={eventPointerTitle(ev, studyMode)}
                               >
                                 <span
                                   className={`event-lane-tick${isEventActive ? " event-lane-tick--active" : ""}`}
@@ -1799,11 +1927,42 @@ export default function App() {
                     role="group"
                     aria-label="Seleccionar evento por título"
                   >
+                    {causalitySvgEdges.length > 0 ? (
+                      <div
+                        className="events-titles-lane__causality-wrap"
+                        aria-hidden
+                      >
+                        <svg
+                          className="events-titles-lane__causality-svg"
+                          viewBox="0 0 1000 100"
+                          preserveAspectRatio="none"
+                        >
+                          {causalitySvgEdges.map(({ from, to }, i) => {
+                            const x1 =
+                              pctOnTrack(from.date.getTime(), min, max) * 10;
+                            const x2 =
+                              pctOnTrack(to.date.getTime(), min, max) * 10;
+                            const mid = (x1 + x2) / 2;
+                            const bulge =
+                              Math.min(42, Math.abs(x2 - x1) * 0.22 + 10);
+                            const d = `M ${x1} 62 Q ${mid} ${62 - bulge} ${x2} 62`;
+                            return (
+                              <path
+                                key={`${from.title}→${to.title}-${i}`}
+                                className="events-titles-lane__causality-path"
+                                d={d}
+                              />
+                            );
+                          })}
+                        </svg>
+                      </div>
+                    ) : null}
                     <div className="events-titles-lane__connectors" aria-hidden>
                       {eventsSorted.map((e, eventIdx) => {
                         const pl = eventLabelPlacements[eventIdx]!;
                         const isConnActive =
                           sel?.kind === "event" && sel.item === e;
+                        if (!eventPassesLaneFilter(e)) return null;
                         return (
                           <div
                             key={`conn-title-${e.title}-${e.date.toISOString()}`}
@@ -1827,11 +1986,17 @@ export default function App() {
                       const pl = eventLabelPlacements[eventIdx]!;
                       const isEventActive =
                         sel?.kind === "event" && sel.item === e;
+                      const isRelated =
+                        studyMode !== "exam" &&
+                        sel?.kind === "event" &&
+                        causalHighlight.has(e) &&
+                        sel.item !== e;
                       const p = pctOnTrack(e.date.getTime(), min, max);
+                      if (!eventPassesLaneFilter(e)) return null;
                       return (
                         <div
                           key={`title-${e.title}-${e.date.toISOString()}`}
-                          className={`event-marker ${isEventActive ? "event-marker--selected" : ""}`}
+                          className={`event-marker ${isEventActive ? "event-marker--selected" : ""}${isRelated ? " event-marker--related" : ""}`.trim()}
                           style={
                             {
                               left: `${p}%`,
@@ -1852,7 +2017,7 @@ export default function App() {
                               }
                             }}
                             onClick={() => setSel({ kind: "event", item: e })}
-                            title={e.title}
+                            title={eventPointerTitle(e, studyMode)}
                           >
                             <span
                               className={`event-dot event-dot--titles ${isEventActive ? "active" : ""}`}
@@ -2051,6 +2216,8 @@ export default function App() {
           periods={periods}
           events={events}
           sel={sel}
+          studyMode={studyMode}
+          eventsByTitle={eventsByTitle}
           activePeriodForTimeline={activePeriodForTimeline}
           onSelectPeriod={(p) => setSel({ kind: "period", item: p })}
           onSelectEvent={(e) => setSel({ kind: "event", item: e })}

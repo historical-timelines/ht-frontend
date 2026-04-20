@@ -106,6 +106,13 @@
 
 .viewer-toolbar {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.45rem;
+}
+
+.viewer-toolbar-top {
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
@@ -118,7 +125,7 @@
 }
 
 .viewer-toolbar-title {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "IBM Plex Serif", Georgia, serif;
   font-size: clamp(0.95rem, 2.2vw, 1.15rem);
   font-weight: 700;
   margin: 0;
@@ -137,6 +144,84 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.3rem;
+}
+
+.viewer-study-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  padding-top: 0.1rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.viewer-study-modes {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.viewer-study-mode-btn {
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.22rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  background: color-mix(in srgb, var(--surface) 92%, var(--bg));
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.viewer-study-mode-btn:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.viewer-study-mode-btn--active {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+}
+
+.viewer-lane-filters {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.viewer-lane-filter {
+  font: inherit;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.18rem 0.38rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, currentColor 45%, var(--border));
+  background: color-mix(in srgb, currentColor 12%, var(--surface));
+  color: var(--lane-chip-fg, var(--muted));
+  cursor: pointer;
+  transition:
+    opacity 0.12s ease,
+    filter 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.viewer-lane-filter[aria-pressed="true"] {
+  filter: saturate(1.05);
+}
+
+.viewer-lane-filter[aria-pressed="false"] {
+  opacity: 0.38;
 }
 
 /* Compactos: la caja dibujada es pequeña; hover/active con velo suave (no “pastilla” grande). */
@@ -487,7 +572,7 @@
 }
 
 .keyboard-cheatsheet-title {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "IBM Plex Serif", Georgia, serif;
   font-size: 0.95rem;
   font-weight: 600;
   margin: 0 0 0.65rem;
@@ -575,7 +660,7 @@
 }
 
 .title {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "IBM Plex Serif", Georgia, serif;
   font-weight: 700;
   font-size: clamp(1.75rem, 4vw, 2.35rem);
   margin: 0 0 0.5rem;
@@ -1675,6 +1760,16 @@
   --events-lane-tint: var(--lane-diplomatico);
 }
 
+.events-lane--filtered-off .events-lane__row--dots,
+.events-lane--filtered-off .events-lane__caption .events-lane__name {
+  opacity: 0.22;
+  filter: grayscale(0.35);
+}
+
+.events-lane--filtered-off .events-lane__row--dots {
+  pointer-events: none;
+}
+
 /*
  * Rótulo fuera del flujo: la pista de ticks usa el 100% del ancho de la pista;
  * los % de fecha coinciden con eje y fila de títulos (antes el flex restaba ancho).
@@ -1984,6 +2079,49 @@
   z-index: 5;
 }
 
+.event-marker--related {
+  z-index: 4;
+}
+
+.event-marker--related .event-label-h {
+  color: color-mix(in srgb, var(--accent) 42%, var(--text));
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  text-underline-offset: 0.12em;
+}
+
+.viewer-shell--study-causal .event-marker--related .event-label-h {
+  color: color-mix(in srgb, var(--accent) 55%, var(--text));
+}
+
+.events-titles-lane__causality-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.events-titles-lane__causality-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.events-titles-lane__causality-path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--accent) 55%, var(--muted));
+  stroke-width: 0.35;
+  stroke-linecap: round;
+  opacity: 0.55;
+}
+
+.viewer-shell--study-causal .events-titles-lane__causality-path {
+  stroke: color-mix(in srgb, var(--accent) 72%, var(--text));
+  opacity: 0.72;
+  stroke-width: 0.42;
+}
+
 
 /*
  * Un solo control táctil: punto + título (toda la caja del botón).
@@ -2167,6 +2305,12 @@
   filter: brightness(0.9);
 }
 
+.events-lane--semantic .event-marker--related .event-lane-tick {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent) 40%, transparent),
+    0 0 10px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
 .events-lane--semantic .event-lane-tick--active {
   background: color-mix(
     in srgb,
@@ -2229,7 +2373,7 @@
 }
 
 .legend-title {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "IBM Plex Serif", Georgia, serif;
   font-size: 1.1rem;
   margin: 0 0 0.75rem;
 }
@@ -2354,7 +2498,7 @@
 }
 
 .detail-title {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "IBM Plex Serif", Georgia, serif;
   font-size: 1.35rem;
   margin: 0 0 0.35rem;
 }

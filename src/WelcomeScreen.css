@@ -19,7 +19,7 @@
 }
 
 .welcome-title {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "IBM Plex Serif", Georgia, serif;
   font-size: clamp(1.85rem, 5vw, 2.5rem);
   font-weight: 700;
   letter-spacing: -0.02em;
