@@ -12,7 +12,7 @@ import type { CSSProperties } from "react";
  *   contenido scrollable (igual que eje y períodos). El rótulo no participa del flujo de ancho:
  *   vive en la misma celda de rejilla que la pista (`events-lane__semantic-body` en `App.css`).
  * - **Visor / overflow**: no añadir `overflow-y: visible` en el mismo nodo que `overflow-x: auto`
- *   (regla del proyecto: ver `docs/VIEWER_LAYOUT.md`). El sticky es solo horizontal.
+ *   (regla del proyecto: ver `docs/VIEWER_LAYOUT.SPEC.md`). El sticky es solo horizontal.
  *
  * Si tocás el layout de este bloque, revisá que los `left: ${pct}%` de los eventos sigan
  * referidos al mismo ancho que `.timeline-stack` / eje.

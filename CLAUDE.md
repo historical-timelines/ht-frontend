@@ -2,4 +2,4 @@
 
 **Start here:** [`docs/MASTER.md`](./docs/MASTER.md) — project overview, architecture, data model, planned backend, and file index.
 
-**Layout traps (must read before touching viewer CSS):** [`AGENTS.md`](./AGENTS.md) → [`docs/VIEWER_LAYOUT.md`](./docs/VIEWER_LAYOUT.md).
+**Layout y trabajo asistido:** [`AGENTS.md`](./AGENTS.md) — trampas del visor y enlaces a [`docs/VIEWER_LAYOUT.SPEC.md`](./docs/VIEWER_LAYOUT.SPEC.md), [`docs/TIMELINE_LAYOUT.SPEC.md`](./docs/TIMELINE_LAYOUT.SPEC.md) y [`docs/TEMPLATE.SPEC.md`](./docs/TEMPLATE.SPEC.md).

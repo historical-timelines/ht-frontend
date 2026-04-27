@@ -2,7 +2,11 @@
 
 ## Layout del visor
 
-**Especificación completa:** [`docs/VIEWER_LAYOUT.md`](./docs/VIEWER_LAYOUT.md) (incluye tabla de contenedores, checklist y sección **“Trampas comunes”**).
+**Convención de nombres:** `docs/<NOMBRE>.SPEC.md` (p. ej. `VIEWER_LAYOUT.SPEC.md`).
+
+**Plantilla:** [`docs/TEMPLATE.SPEC.md`](./docs/TEMPLATE.SPEC.md).
+
+**Specs (misma estructura):** [`docs/VIEWER_LAYOUT.SPEC.md`](./docs/VIEWER_LAYOUT.SPEC.md) (visor), [`docs/TIMELINE_LAYOUT.SPEC.md`](./docs/TIMELINE_LAYOUT.SPEC.md) (timeline). Trampas del visor bajo *Constraints* / *Pitfalls*.
 
 En Cursor: regla siempre activa [`.cursor/rules/viewer-layout.mdc`](./.cursor/rules/viewer-layout.mdc).
 
@@ -25,6 +29,7 @@ En Cursor: regla siempre activa [`.cursor/rules/viewer-layout.mdc`](./.cursor/ru
 
 ### Eje temporal: fechas “encimadas” y zoom (intencional)
 
+- **Modelo de capas (sandwich del timeline):** [`docs/TIMELINE_LAYOUT.SPEC.md`](./docs/TIMELINE_LAYOUT.SPEC.md) — sección **Behavior** (stack y conectores).
 - Las marcas del eje (inicios/fines de período + fechas de eventos) vienen de `mergeAxisMarks` y se colocan con **`assignAxisMarkLanes`** en `src/App.tsx`.
 - El algoritmo mide el **ancho en píxeles** de cada etiqueta y la **anchura útil de la pista** (`stackWidthPx`, vía `ResizeObserver` sobre `.timeline-stack`). Con menos zoom la pista es más ancha en px → las mismas fechas quedan **más separadas en %** del eje → **menos solapes** y menos carriles verticales. Con más zoom la pista se estrecha en pantalla → las etiquetas compiten antes por el mismo hueco → **suben de carril** antes (más filas de fechas apiladas).
 - Eso **no es un bug**: es el mismo criterio que `assignEventLabelLanes` para títulos de eventos (densidad según ancho real vs. zoom).
@@ -32,5 +37,7 @@ En Cursor: regla siempre activa [`.cursor/rules/viewer-layout.mdc`](./.cursor/ru
 
 ### Otros puntos de entrada
 
+- **Nuevo spec de producto / feature:** copiá [`docs/TEMPLATE.SPEC.md`](./docs/TEMPLATE.SPEC.md) a `docs/<NOMBRE>.SPEC.md` y rellená.
+- **Timeline (producto + invariantes + tests, greenfield):** [`docs/TIMELINE_LAYOUT.SPEC.md`](./docs/TIMELINE_LAYOUT.SPEC.md).
 - [`CLAUDE.md`](./CLAUDE.md) remite aquí.
-- [`README.md`](./README.md) enlaza a `docs/VIEWER_LAYOUT.md`.
+- [`README.md`](./README.md) enlaza a los specs y a la plantilla.

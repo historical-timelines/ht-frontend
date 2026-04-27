@@ -1,13 +1,13 @@
 ---
 description: >-
   Visor timeline: viewport sin scroll global; overflow Chromium; body 100vh vs dvh; no 100vw en
-  chart--viewer. Leer docs/VIEWER_LAYOUT.md antes de cambiar layout/overflow.
+  chart--viewer. Leer docs/VIEWER_LAYOUT.SPEC.md antes de cambiar layout/overflow.
 alwaysApply: true
 ---
 
 # Visor (modo línea de tiempo)
 
-Antes de cambiar **layout, overflow o alturas** del visor: leé **`docs/VIEWER_LAYOUT.md`** (tabla de capas, **“Trampas comunes”** y checklist).
+Antes de cambiar **layout, overflow o alturas** del visor: leé **`docs/VIEWER_LAYOUT.SPEC.md`** (feature spec: *Behavior*, *Constraints and invariants* / *Pitfalls*, *Testing and verification*).
 
 ## Contrato
 
@@ -21,4 +21,4 @@ Antes de cambiar **layout, overflow o alturas** del visor: leé **`docs/VIEWER_L
 3. **Chart:** `.chart.chart-bleed.chart--viewer` → `width: 100%`, `margin: 0` (no bleed `100vw` del `.chart-bleed` genérico).
 4. **No** `max-height` + scroll en `.viewer-chart-wrap` salvo producto explícito.
 
-Detalle y checklist: **`docs/VIEWER_LAYOUT.md`**.
+Detalle, trampas y checklist: **`docs/VIEWER_LAYOUT.SPEC.md`**. Plantilla: `docs/TEMPLATE.SPEC.md`.

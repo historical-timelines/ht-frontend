@@ -348,15 +348,15 @@
 
 /*
  * Visor fijo al viewport (.viewer-shell overflow hidden):
- * - Fila 1: timeline, alto = contenido (sin scroll vertical ni tope artificial).
- * - Fila 2: visor inferior (listas | detalle), minmax(0,1fr) = todo el espacio que sobra; scroll solo adentro.
+ * - Columna flex: chart (puede encogerse) + visor inferior (resto con min-h:0, scroll adentro).
+ * - Con grid auto+1fr, el timeline con altura intrínseca mayor que el hueco se recortaba abajo; el scroll
+ *   pasa a .timeline-scroll cuando el stack no cabe.
  */
 .viewer-main {
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 0;
   overflow: hidden;
 }
@@ -364,9 +364,9 @@
 .viewer-shell--has-selection .viewer-chart-wrap,
 .viewer-shell--has-selection .viewer-chart-wrap--pinned {
   height: auto;
-  align-self: start;
+  align-self: stretch;
   width: 100%;
-  overflow: visible;
+  overflow: hidden;
   /*
    * Sin selección el chrome va absoluto y el min 11rem del wrap ayuda al estado vacío.
    * Con selección el chrome entra en flujo: si el wrap sigue forzando ≥11rem, el section
@@ -380,15 +380,20 @@
   top: auto;
 }
 
-/* El section no debe estirarse al alto del wrap (evita overflow interno / scroll en el section). */
+/* El section rellena el wrap y delega el scroll al .timeline-scroll (misma política que sin selección). */
 .viewer-shell--has-selection .chart--viewer.chart-bleed {
-  flex: 0 0 auto;
-  align-self: flex-start;
+  flex: 1 1 0%;
+  align-self: stretch;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .viewer-shell--has-selection .chart--viewer .timeline-scroll {
-  flex: 0 0 auto;
+  flex: 1 1 0%;
   min-height: 0;
+  min-width: 0;
+  overflow: auto;
 }
 
 /*
@@ -451,18 +456,18 @@
 }
 
 .viewer-chart-wrap {
-  grid-row: 1;
-  align-self: start;
-  justify-self: stretch;
   width: 100%;
-  min-height: 11rem;
-  min-height: max(11rem, min-content);
+  min-width: 0;
+  /* Antes: max(11rem, min-content) impedía bajar de la altura intrínseca del stack. min-height:0
+   * permite al flex encoger el wrap; el ancho 11rem vacío se cubre con el bloque mínimo del chart. */
+  min-height: 0;
+  flex: 0 1 auto;
   /*
    * No mezclar overflow-x: hidden con overflow-y: visible: en Chromium/WebKit overflow-y pasa a
    * auto y aparece scroll vertical “fantasma” en este contenedor.
    * El recorte horizontal lo hace .viewer-main (overflow: hidden) si hiciera falta.
    */
-  overflow: visible;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -471,16 +476,19 @@
   position: sticky;
   top: 0;
   z-index: 8;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-height: 0;
   background: var(--bg);
   box-shadow: 0 6px 16px color-mix(in srgb, #000 28%, transparent);
 }
 
 .chart--viewer.chart-bleed {
-  flex: 0 0 auto;
+  flex: 1 1 0%;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   margin-bottom: 0;
   margin-top: 0;
   border: none;
@@ -501,7 +509,7 @@
    * Nunca overflow-x: hidden + overflow-y: visible en el mismo nodo: el motor fuerza overflow-y
    * a auto y genera barra de scroll vertical casi llena (pocos px de contenido “scrollable”).
    */
-  overflow: visible;
+  overflow: hidden;
   padding-left: clamp(0.28rem, 0.9vw, 0.55rem);
   padding-right: clamp(0.28rem, 0.9vw, 0.55rem);
   padding-top: clamp(0.3rem, 0.95vw, 0.5rem);
@@ -524,14 +532,17 @@
 }
 
 .chart--viewer.chart-bleed .timeline-scroll {
-  flex: 0 0 auto;
+  flex: 1 1 0%;
   min-height: 0;
+  min-width: 0;
   /* Capa base explícita: dentro del stack hay z-index hasta 6 (.events-stack); el chrome
    * debe quedar siempre encima del bloque scrolleable (evita solape visual en el borde). */
   position: relative;
   z-index: 0;
-  overflow-y: hidden;
-  overflow-y: clip;
+  /* overflow: auto: ambos ejes; evita y:visible con x:auto. Si el stack supera al hueco, scroll interno. */
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 .app-header-inner {
@@ -732,20 +743,12 @@
   }
 }
 
-/*
- * Sin scroll vertical en el timeline: solo scroll horizontal; el alto lo define el contenido.
- * overflow-y: visible junto a overflow-x: auto fuerza overflow-y: auto en Chromium (barra fantasma).
- */
+/* En visor, el scroll pasa a ser bidireccional vía .chart--viewer... .timeline-scroll (overflow: auto).
+ * No re-forzar y:clip aquí: gana sobre flex y recortaba el stack por abajo. */
 .viewer-shell--has-selection .chart--viewer .timeline-scroll {
-  overflow-y: hidden;
-  overflow-y: clip;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.viewer-shell--has-selection .chart--viewer .timeline-scroll::-webkit-scrollbar {
-  width: 0;
-  height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 .timeline-scroll::-webkit-scrollbar {
@@ -868,6 +871,32 @@
         0.1rem
     );
     --events-lane-stack-gap: 0.045rem;
+  }
+}
+
+/*
+ * Modo vertical: en DOM `maxLane` = 0 en títulos. No inflar --event-label-lane-nudge con vstride
+ * (hasta 9rem): afectaba conectores y --timeline-event-label-room; la fila de títulos reserva
+ * alto vía sizer/JS (verticalEventTitlesRowLayoutPx). Aire fijo, acorde a conectores y
+ * --events-dot-half.
+ */
+.timeline-stack--compact.timeline-stack--event-labels-vertical {
+  --event-label-lane-nudge: 1.05rem;
+  --events-row-pad-bottom: 0.52rem;
+  --event-connector-bottom-inset: calc(
+    var(--events-row-pad-bottom) + var(--events-dot-half)
+  );
+  --timeline-event-label-room: var(--events-row-pad-bottom);
+}
+
+@media (pointer: coarse) {
+  .timeline-stack--compact.timeline-stack--event-labels-vertical {
+    --event-label-lane-nudge: 1.1rem;
+    --events-row-pad-bottom: 0.56rem;
+    --event-connector-bottom-inset: calc(
+      var(--events-row-pad-bottom) + var(--events-dot-half)
+    );
+    --timeline-event-label-room: var(--events-row-pad-bottom);
   }
 }
 
@@ -1927,6 +1956,57 @@
   }
 }
 
+/*
+ * Títulos verticales: la pista de grid no puede quedar fija a ~44px; el título crecería hacia
+ * abajo y se recorta bajo .timeline-scroll. minmax(…, auto) hace crecer la fila con el contenido.
+ * El colchón inferior pasa a ser pequeño: el “aire” vive en el alto in-flow, no otra vez en padding.
+ */
+.events-titles-lane--labels-vertical .events-titles-lane__row.row-bar {
+  grid-template-rows: minmax(max(1.22rem, var(--touch-target-min, 44px)), auto);
+  min-height: max(1.22rem, var(--touch-target-min, 44px));
+  /* Desplazamiento superior desde JS: evita rótulo vertical fuera de la caja (marcadores abspos
+     0×0; ver verticalEventTitlesRowLayoutPx y el sizer in-flow). */
+  padding-top: var(--v-pad, 0px);
+  /* Evitar doble reserva: --timeline-event-label-room del stack aún fija aire a nivel pista. */
+  padding-bottom: 0.28rem;
+}
+
+@media (pointer: coarse) {
+  .events-titles-lane--labels-vertical .events-titles-lane__row.row-bar {
+    grid-template-rows: minmax(max(1.32rem, var(--touch-target-min, 44px)), auto);
+    min-height: max(1.32rem, var(--touch-target-min, 44px));
+    padding-bottom: 0.32rem;
+  }
+}
+
+.events-titles-lane--labels-vertical .events-titles-lane__connectors {
+  /* Alinear la capa con el contenido bajo el padding (igual criterio que el `top` del marker). */
+  top: var(--v-pad, 0px);
+  bottom: 0.28rem;
+}
+
+@media (pointer: coarse) {
+  .events-titles-lane--labels-vertical .events-titles-lane__connectors {
+    bottom: 0.32rem;
+  }
+}
+
+.events-titles-lane__vertical-inflow-sizer {
+  width: 0;
+  min-width: 0;
+  max-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  pointer-events: none;
+  align-self: stretch;
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  box-sizing: border-box;
+}
+
 .events-titles-lane__row.row-bar > * {
   grid-column: 1;
   grid-row: 1;
@@ -1935,6 +2015,13 @@
 .events-titles-lane .event-marker {
   top: calc(
     var(--events-dot-half) +
+      var(--event-label-lane, 0) * var(--event-label-lane-nudge, 0.96rem)
+  );
+}
+
+.events-titles-lane--labels-vertical .events-titles-lane .event-marker {
+  top: calc(
+    var(--v-pad, 0px) + var(--events-dot-half) +
       var(--event-label-lane, 0) * var(--event-label-lane-nudge, 0.96rem)
   );
 }
@@ -1994,6 +2081,27 @@
     var(--event-conn-end-adjust, 1rem) -
       var(--event-conn-lane, 0) * var(--event-label-lane-nudge, 0.96rem) +
       var(--events-titles-connector-trim, 0.38rem) +
+      var(--events-titles-connector-selected-breather, 0.58rem) +
+      calc(var(--event-conn-lane, 0) * 0.15rem)
+  );
+}
+
+/*
+ * Modo vertical: la fila crece (sizer + --v-pad). El tope de trazo fijo con ~--event-conn-end-adjust
+ * dejaba el fin 16px bajo .events-titles-lane__connectors; el ancla del disco va con sizer−dot-half.
+ * --ev-titles-v-connector-btm = sizerContentMinPx−eventsDotHalf (TimelineEventTitlesLane).
+ */
+.events-titles-lane--labels-vertical .events-titles-lane__connectors .event-connector {
+  bottom: calc(
+    var(--ev-titles-v-connector-btm) + var(--events-titles-connector-trim, 0.38rem)
+  );
+}
+
+.events-titles-lane--labels-vertical
+  .events-titles-lane__connectors
+  .event-connector--selected {
+  bottom: calc(
+    var(--ev-titles-v-connector-btm) + var(--events-titles-connector-trim, 0.38rem) +
       var(--events-titles-connector-selected-breather, 0.58rem) +
       calc(var(--event-conn-lane, 0) * 0.15rem)
   );
@@ -2462,6 +2570,70 @@
 
 .event-hit--end .event-label-h {
   text-align: right;
+}
+
+/*
+ * Modo vertical: [disco] + [caja w×h]. Solo `.event-label-vrot-slab` se transforma (gira con el
+ * título, mismo rectángulo; `pointer-events: none` para tocar toda la caja del wrap).
+ * Origen abajo-izq + 90° CW: el título “cae” hacia abajo, no hacia arriba.
+ * Alternativa futura: `writing-mode: vertical-rl` evita transform; requeriría spike (ellipsis/UX).
+ */
+.event-label-vrot-wrap {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-block;
+  width: max(0.78rem, 1.02em);
+  min-width: 0;
+  box-sizing: border-box;
+  align-self: center;
+  vertical-align: bottom;
+  overflow: visible;
+}
+
+/* En títulos verticales el padre ya centra; la columna no ancla al bajo (evitaba bajar el disco). */
+.events-titles-lane--labels-vertical .event-label-vrot-wrap {
+  align-self: center;
+  vertical-align: middle;
+}
+
+.event-label-h.event-label-vrot-slab {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  margin: 0;
+  max-width: min(12rem, 40vw);
+  width: max-content;
+  min-width: 0;
+  display: block;
+  white-space: nowrap;
+  transform: rotate(90deg);
+  transform-origin: bottom left;
+  pointer-events: none;
+  flex: 0 0 auto;
+  z-index: 1;
+}
+
+/*
+ * Eje Y: con flex-end el disco y la base de la columna quedaban al fondo y desalineados con
+ * --events-dot-half (centro de franja). Centrado en el eje transversal alinea con el ancla
+ * top: vPad + events-dot-half + translateY(-50%) del .event-hit.
+ */
+.events-titles-lane--labels-vertical .event-hit {
+  align-items: center;
+}
+
+@media (pointer: coarse) {
+  .events-titles-lane--labels-vertical .event-label-vrot-wrap {
+    width: max(0.85rem, var(--touch-target-min, 44px));
+  }
+
+  .events-titles-lane--labels-vertical .event-marker .event-hit::before {
+    inset: -6px 0;
+  }
+}
+
+.events-titles-lane--labels-vertical .event-hit .event-label-h {
+  text-align: left;
 }
 
 @media (pointer: coarse) {

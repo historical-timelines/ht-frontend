@@ -16,18 +16,20 @@ import {
   eventByTitleMap,
   type StudyMode,
 } from "../causality";
-import {
-  EVENT_LANE_ORDER,
-  LANE_UI,
-  semanticConnectorLaneSpanCount,
-  type EventLaneId,
-} from "../eventLanes";
+import { EVENT_LANE_ORDER, LANE_UI, type EventLaneId } from "../eventLanes";
 import type { Period, Selection, TimelineEvent } from "../types";
 import { useNavigate } from "react-router-dom";
 import { SITE_INSTAGRAM_URL } from "./siteLinks";
 import { ViewerLower } from "./ViewerLower";
 import { KeyboardHelpModal } from "./KeyboardHelpModal";
 import { TimelineSemanticEventLanes } from "./TimelineSemanticEventLanes";
+import { TimelineEventTitlesLane } from "./TimelineEventTitlesLane";
+/* Títulos de eventos: si `timelineZoom < EVENT_LABEL_VERTICAL_ZOOM_THRESHOLD` van verticales (layout+CSS); ver `timeline/eventLabelLayout.ts`. */
+import {
+  assignEventLabelLanes,
+  EVENT_LABEL_VERTICAL_ZOOM_THRESHOLD,
+  labelIntervalsOverlap,
+} from "./timeline/eventLabelLayout";
 import "./App.css";
 
 function formatDate(d: Date): string {
@@ -634,221 +636,6 @@ function assignAxisMarkLanes(
   return out;
 }
 
-type EventLabelAnchor = "start" | "center" | "end";
-
-type EventLabelPlacement = {
-  lane: number;
-  anchor: EventLabelAnchor;
-  /** Ancho máximo del texto (px), acotado al espacio disponible en la pista. */
-  maxWidthPx: number;
-};
-
-let eventLabelMeasureCtx: CanvasRenderingContext2D | null = null;
-
-function measureEventTitleWidthsPx(
-  titles: string[],
-  compact: boolean,
-  pointerCoarse: boolean
-): number[] {
-  const fontPx = compact ? 10 : pointerCoarse ? 12.5 : 12;
-  const font = `600 ${fontPx}px "Source Sans 3",system-ui,sans-serif`;
-  const pad = 10;
-  if (typeof document === "undefined") {
-    return titles.map((t) => Math.min(t.length * fontPx * 0.52 + pad, 280));
-  }
-  if (!eventLabelMeasureCtx) {
-    const c = document.createElement("canvas");
-    eventLabelMeasureCtx = c.getContext("2d");
-  }
-  const ctx = eventLabelMeasureCtx;
-  if (!ctx) {
-    return titles.map((t) => Math.min(t.length * fontPx * 0.52 + pad, 280));
-  }
-  ctx.font = font;
-  return titles.map((t) => Math.min(ctx.measureText(t).width + pad, 320));
-}
-
-function labelIntervalsOverlap(
-  a: readonly [number, number],
-  b: readonly [number, number],
-  gapPct: number
-): boolean {
-  return a[0] < b[1] + gapPct && a[1] > b[0] - gapPct;
-}
-
-/** Fuentes/subpíxeles: el canvas suele medir un poco menos que el texto renderizado. */
-const EVENT_LABEL_MEASURE_SAFETY = 1.12;
-
-/**
- * Si dos marcas caen casi en la misma columna (% de pista), alternar ancla despliega el texto
- * a lados opuestos del punto y reduce solapes horizontales antes de subir de carril.
- */
-const EVENT_LABEL_TIGHT_PCT = 1.05;
-
-/** Desde el centro del punto al inicio del texto (estado inactivo; coincide con gap base en App.css). */
-function eventLabelEdgePx(pointerCoarse: boolean): number {
-  const dotHalfPx = 7;
-  const flexGapPx = pointerCoarse ? 5.5 : 6;
-  return dotHalfPx + flexGapPx;
-}
-
-/**
- * Reparte etiquetas de eventos en carriles verticales (swimming lanes), como los ticks del eje.
- * Colisión: rectángulos horizontales [left,right] en % de pista (misma convención que pctOnTrack),
- * más un hueco mínimo. Si siguen chocando, sube de carril (más `lane` → más abajo en CSS).
- */
-function assignEventLabelLanes(
-  eventsSorted: TimelineEvent[],
-  min: number,
-  max: number,
-  stackWidthPx: number | null,
-  compact: boolean,
-  pointerCoarse: boolean
-): { placements: EventLabelPlacement[]; maxLane: number } {
-  const n = eventsSorted.length;
-  if (n === 0) {
-    return { placements: [], maxLane: 0 };
-  }
-
-  const stackPx =
-    stackWidthPx != null && stackWidthPx > 0 ? stackWidthPx : 520;
-  const edgePx = eventLabelEdgePx(pointerCoarse);
-  const edgePct = (edgePx / stackPx) * 100;
-
-  const widthsPx = measureEventTitleWidthsPx(
-    eventsSorted.map((e) => e.title),
-    compact,
-    pointerCoarse
-  );
-
-  const items = eventsSorted.map((event, i) => ({
-    event,
-    i,
-    p: pctOnTrack(event.date.getTime(), min, max),
-    baseWidthPx: widthsPx[i]! * EVENT_LABEL_MEASURE_SAFETY,
-  }));
-  items.sort((a, b) => a.p - b.p || a.i - b.i);
-
-  /** Hueco horizontal mínimo entre cajas (% pista), acotado inferiormente en px. */
-  const gapPct = Math.max(1.35, (22 / stackPx) * 100);
-
-  const anchorByS: EventLabelAnchor[] = new Array(n);
-  if (n === 1) {
-    const p0 = items[0]!.p;
-    anchorByS[0] =
-      p0 <= 6 ? "start" : p0 >= 94 ? "end" : "center";
-  } else {
-    anchorByS[0] = "start";
-    anchorByS[n - 1] = "end";
-    for (let s = 1; s < n - 1; s++) {
-      const p = items[s]!.p;
-      const prevP = items[s - 1]!.p;
-      const nextP = items[s + 1]!.p;
-      const gapLeft = p - prevP;
-      const gapRight = nextP - p;
-      let anchor: EventLabelAnchor =
-        gapRight > gapLeft
-          ? "start"
-          : gapRight < gapLeft
-            ? "end"
-            : p < 50
-              ? "start"
-              : "end";
-      if (Math.abs(p - prevP) < EVENT_LABEL_TIGHT_PCT) {
-        anchor = anchorByS[s - 1] === "start" ? "end" : "start";
-      }
-      anchorByS[s] = anchor;
-    }
-  }
-
-  const lanes: [number, number][][] = [];
-  const temp: {
-    i: number;
-    lane: number;
-    anchor: EventLabelAnchor;
-    maxWidthPx: number;
-  }[] = [];
-
-  for (let s = 0; s < items.length; s++) {
-    const { i, p, baseWidthPx } = items[s]!;
-    const anchor = anchorByS[s]!;
-
-    const rawSpanPct = (baseWidthPx / stackPx) * 100 + 0.38;
-
-    let widthPct = Math.min(rawSpanPct, 44);
-    if (anchor === "start") {
-      widthPct = Math.min(
-        widthPct,
-        Math.max(0.85, 100 - p - edgePct - 0.25)
-      );
-    } else if (anchor === "end") {
-      widthPct = Math.min(widthPct, Math.max(0.85, p - edgePct - 0.25));
-    } else {
-      widthPct = Math.min(
-        widthPct,
-        Math.max(0.85, 2 * Math.min(p, 100 - p) - edgePct * 2 - 0.35)
-      );
-    }
-
-    let left: number;
-    let right: number;
-    if (anchor === "start") {
-      left = p + edgePct;
-      right = p + edgePct + widthPct;
-    } else if (anchor === "end") {
-      right = p - edgePct;
-      left = p - edgePct - widthPct;
-    } else {
-      left = p - widthPct / 2;
-      right = p + widthPct / 2;
-    }
-
-    const interval: [number, number] = [left, right];
-
-    let lane = 0;
-    for (;; lane++) {
-      if (lane >= lanes.length) {
-        lanes.push([]);
-      }
-      const occupied = lanes[lane]!;
-      const clash = occupied.some((iv) =>
-        labelIntervalsOverlap(interval, iv, gapPct)
-      );
-      if (!clash) {
-        occupied.push(interval);
-        const maxWidthPx = Math.min(
-          baseWidthPx,
-          Math.max(48, (widthPct / 100) * stackPx)
-        );
-        temp.push({
-          i,
-          lane,
-          anchor,
-          maxWidthPx,
-        });
-        break;
-      }
-    }
-  }
-
-  const placements: EventLabelPlacement[] = eventsSorted.map(() => ({
-    lane: 0,
-    anchor: "center",
-    maxWidthPx: 160,
-  }));
-  let maxLane = 0;
-  for (const t of temp) {
-    placements[t.i] = {
-      lane: t.lane,
-      anchor: t.anchor,
-      maxWidthPx: t.maxWidthPx,
-    };
-    maxLane = Math.max(maxLane, t.lane);
-  }
-
-  return { placements, maxLane };
-}
-
 export default function App() {
   const { periods, events } = timelineHistoriaArgentina;
 
@@ -1058,20 +845,41 @@ export default function App() {
     };
   }, []);
 
-  const { eventLabelPlacements, eventLabelMaxLane } = useMemo(
-    () => {
-      const { placements, maxLane } = assignEventLabelLanes(
-        eventsSorted,
-        min,
-        max,
-        stackWidthPx,
-        true,
-        pointerCoarse
-      );
-      return { eventLabelPlacements: placements, eventLabelMaxLane: maxLane };
-    },
-    [eventsSorted, min, max, stackWidthPx, pointerCoarse]
-  );
+  const eventLabelsVertical =
+    timelineZoom < EVENT_LABEL_VERTICAL_ZOOM_THRESHOLD;
+
+  const { eventLabelPlacements, eventLabelMaxLane } = useMemo(() => {
+    const trackPct = (tMs: number) => pctOnTrack(tMs, min, max);
+    const { placements, maxLane } = assignEventLabelLanes(
+      eventsSorted,
+      trackPct,
+      stackWidthPx,
+      true,
+      pointerCoarse,
+      eventLabelsVertical
+    );
+    return { eventLabelPlacements: placements, eventLabelMaxLane: maxLane };
+  }, [
+    eventsSorted,
+    min,
+    max,
+    stackWidthPx,
+    pointerCoarse,
+    eventLabelsVertical,
+  ]);
+
+  /* Al pasar a títulos verticales (zoom bajo), anclar el scroll vertical al inicio del stack:
+   * evita que el bloque quede “pegado al fondo” con aire vacío arriba. */
+  const prevEventLabelsVerticalRef = useRef(eventLabelsVertical);
+  useLayoutEffect(() => {
+    const el = timelineScrollRef.current;
+    if (!el) return;
+    const wasVertical = prevEventLabelsVerticalRef.current;
+    prevEventLabelsVerticalRef.current = eventLabelsVertical;
+    if (!wasVertical && eventLabelsVertical) {
+      el.scrollTop = 0;
+    }
+  }, [eventLabelsVertical]);
 
   const laneColorCssVars = useMemo((): CSSProperties => {
     const o: Record<string, string> = {};
@@ -1701,11 +1509,13 @@ export default function App() {
         >
           <div
             ref={timelineStackRef}
-            className="timeline-stack timeline-stack--compact"
+            className={`timeline-stack timeline-stack--compact${eventLabelsVertical ? " timeline-stack--event-labels-vertical" : ""}`.trim()}
             style={
               {
                 "--timeline-zoom": String(timelineZoom),
-                "--event-label-max-lane": eventLabelMaxLane,
+                "--event-label-max-lane": eventLabelsVertical
+                  ? 0
+                  : eventLabelMaxLane,
                 "--period-compact-row-h": `${compactPeriodRowRem}rem`,
                 "--period-row-count": periodIndicesByLane.length,
                 "--events-semantic-lane-count": EVENT_LANE_ORDER.length,
@@ -1907,128 +1717,25 @@ export default function App() {
                   causalHighlight={causalHighlight}
                   onSelectEvent={(item) => setSel({ kind: "event", item })}
                 />
-                <div
-                  className="events-titles-lane"
-                  role="region"
-                  aria-label="Títulos de eventos por fecha"
-                >
-                  <div
-                    className="events-titles-lane__row row-bar"
-                    role="group"
-                    aria-label="Seleccionar evento por título"
-                  >
-                    {causalitySvgEdges.length > 0 ? (
-                      <div
-                        className="events-titles-lane__causality-wrap"
-                        aria-hidden
-                      >
-                        <svg
-                          className="events-titles-lane__causality-svg"
-                          viewBox="0 0 1000 100"
-                          preserveAspectRatio="none"
-                        >
-                          {causalitySvgEdges.map(({ from, to }, i) => {
-                            const x1 =
-                              pctOnTrack(from.date.getTime(), min, max) * 10;
-                            const x2 =
-                              pctOnTrack(to.date.getTime(), min, max) * 10;
-                            const mid = (x1 + x2) / 2;
-                            const bulge =
-                              Math.min(42, Math.abs(x2 - x1) * 0.22 + 10);
-                            const d = `M ${x1} 62 Q ${mid} ${62 - bulge} ${x2} 62`;
-                            return (
-                              <path
-                                key={`${from.title}→${to.title}-${i}`}
-                                className="events-titles-lane__causality-path"
-                                d={d}
-                              />
-                            );
-                          })}
-                        </svg>
-                      </div>
-                    ) : null}
-                    <div className="events-titles-lane__connectors" aria-hidden>
-                      {eventsSorted.map((e, eventIdx) => {
-                        const pl = eventLabelPlacements[eventIdx]!;
-                        const isConnActive =
-                          sel?.kind === "event" && sel.item === e;
-                        const lanesMuted = !eventPassesLaneFilter(e);
-                        return (
-                          <div
-                            key={`conn-title-${e.title}-${e.date.toISOString()}`}
-                            className={`event-connector${isConnActive ? " event-connector--selected" : ""}${lanesMuted ? " event-connector--lanes-muted" : ""}`.trim()}
-                            style={
-                              {
-                                left: `${pctOnTrack(e.date.getTime(), min, max)}%`,
-                                "--event-conn-lane": pl.lane,
-                                "--event-connector-lane-span-count":
-                                  semanticConnectorLaneSpanCount(e.lanes),
-                                "--event-connector-stroke": isConnActive
-                                  ? "var(--accent)"
-                                  : "var(--muted)",
-                              } as CSSProperties
-                            }
-                          />
-                        );
-                      })}
-                    </div>
-                    {eventsSorted.map((e, eventIdx) => {
-                      const pl = eventLabelPlacements[eventIdx]!;
-                      const isEventActive =
-                        sel?.kind === "event" && sel.item === e;
-                      const isRelated =
-                        studyMode !== "exam" &&
-                        sel?.kind === "event" &&
-                        causalHighlight.has(e) &&
-                        sel.item !== e;
-                      const p = pctOnTrack(e.date.getTime(), min, max);
-                      const lanesMuted = !eventPassesLaneFilter(e);
-                      return (
-                        <div
-                          key={`title-${e.title}-${e.date.toISOString()}`}
-                          className={`event-marker ${isEventActive ? "event-marker--selected" : ""}${isRelated ? " event-marker--related" : ""}${lanesMuted ? " event-marker--lanes-muted" : ""}`.trim()}
-                          style={
-                            {
-                              left: `${p}%`,
-                              "--event-label-lane": pl.lane,
-                            } as CSSProperties
-                          }
-                        >
-                          <button
-                            type="button"
-                            className={`event-hit event-hit--${pl.anchor}`}
-                            ref={(el) => {
-                              if (isEventActive) {
-                                timelineSelectedEventDotRef.current = el;
-                              } else if (
-                                timelineSelectedEventDotRef.current === el
-                              ) {
-                                timelineSelectedEventDotRef.current = null;
-                              }
-                            }}
-                            onClick={() => setSel({ kind: "event", item: e })}
-                            title={eventPointerTitle(e, studyMode)}
-                          >
-                            <span
-                              className={`event-dot event-dot--titles ${isEventActive ? "active" : ""}`}
-                              aria-hidden="true"
-                            />
-                            <span
-                              className="event-label-h timeline-event-title"
-                              style={
-                                {
-                                  maxWidth: `${Math.round(pl.maxWidthPx)}px`,
-                                } as CSSProperties
-                              }
-                            >
-                              {e.title}
-                            </span>
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                <TimelineEventTitlesLane
+                  eventsSorted={eventsSorted}
+                  eventLabelPlacements={eventLabelPlacements}
+                  trackPct={(tMs: number) => pctOnTrack(tMs, min, max)}
+                  sel={sel}
+                  studyMode={studyMode}
+                  causalHighlight={causalHighlight}
+                  causalitySvgEdges={causalitySvgEdges}
+                  eventPassesLaneFilter={eventPassesLaneFilter}
+                  labelsVertical={eventLabelsVertical}
+                  pointerCoarse={pointerCoarse}
+                  eventPointerTitle={(e: TimelineEvent) =>
+                    eventPointerTitle(e, studyMode)
+                  }
+                  onSelectEvent={(e: TimelineEvent) =>
+                    setSel({ kind: "event", item: e })
+                  }
+                  timelineSelectedEventDotRef={timelineSelectedEventDotRef}
+                />
               </div>
             </div>
           </div>
