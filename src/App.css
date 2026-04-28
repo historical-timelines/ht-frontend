@@ -1957,10 +1957,13 @@
 }
 
 /*
- * Alto del visor de lectura vertical (par con timeline/eventLabelLayoutCore: verticalReadAxisTotalPx).
+ * Alto del visor de lectura vertical: mismo valor que alto de esta franja (sizer/layout en TS
+ * deberían alinearse al cambiar el número).
  */
 .events-titles-lane--labels-vertical {
-  --evt-v-read-axis-max: clamp(112px, 20dvh, 220px);
+  --evt-v-lane-shell-h: 300px;
+  height: var(--evt-v-lane-shell-h);
+  --evt-v-read-axis-max: var(--evt-v-lane-shell-h);
   --evt-v-read-inner-max: calc(var(--evt-v-read-axis-max) - 24px);
 }
 
@@ -2322,17 +2325,19 @@
 }
 
 /*
- * Títulos en vertical (solo modo zoom): `EventTitleMarkerVertical` — no reusar `.event-hit--*`;
- * escritura vertical nativa (`writing-mode`), disco + texto en un solo flex táctil.
+ * Una sola línea física horizontal: [ disco ] [ texto vertical ]. Ortogonal `writing-mode` solo en
+ * .evt-v-caption dentro de .evt-v-clip (caja dimensionada width + max-height) para ellipsis.
  */
 .evt-v-marker .evt-v-hit {
   position: absolute;
   left: 0;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  top: 0;
+  transform: translateX(-50%);
   display: inline-flex;
-  flex-direction: row;
+  flex-direction: column;
+  flex-wrap: nowrap;
   align-items: center;
+  justify-content: flex-start;
   gap: 0.38rem;
   margin: 0;
   padding: 0.12rem 0;
@@ -2349,6 +2354,8 @@
   box-sizing: border-box;
   width: max-content;
   max-width: none;
+  min-height: 0;
+  height: calc(var(--evt-v-lane-shell-h) - 24px);
 }
 
 .evt-v-marker.evt-v-marker--selected .evt-v-hit {
@@ -2382,21 +2389,40 @@
   background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
-.evt-v-caption.timeline-event-title {
-  display: inline-block;
+.evt-v-disk-slot {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.evt-v-clip {
   flex: 0 1 auto;
+  min-width: 0;
+  width: max(44px, 0.85rem);
+  height: var(--evt-v-read-inner-max);
+  max-height: var(--evt-v-read-inner-max);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.evt-v-caption.timeline-event-title {
+  display: inline-flex;
+  align-items: center;
   margin: 0;
   padding: 0;
-  min-width: 0;
   box-sizing: border-box;
   writing-mode: vertical-rl;
   text-orientation: mixed;
-  font-size: 0.68rem;
+  font-size: 0.58rem;
+  transform: rotate(180deg);
   line-height: 1.24;
   font-weight: 600;
   letter-spacing: -0.012em;
   color: color-mix(in srgb, var(--text) 86%, var(--muted) 14%);
-  max-height: var(--evt-v-read-inner-max);
+  height: 100%;
+  min-height: 0;
+  width: auto;
+  max-width: 100%;
   text-shadow:
     0 0 8px var(--surface),
     0 0 4px var(--surface),
@@ -2423,8 +2449,8 @@
 @media (pointer: coarse) {
   .evt-v-marker .evt-v-hit {
     gap: 0.28rem;
-    min-height: var(--touch-target-min, 44px);
-    padding: 0.12rem 0.15rem;
+    min-height: 0;
+    padding: 0.45rem 0.15rem;
   }
 
   .evt-v-marker.evt-v-marker--selected .evt-v-hit {
@@ -2476,6 +2502,7 @@
   opacity: 0.72;
   stroke-width: 0.42;
 }
+
 
 
 /*

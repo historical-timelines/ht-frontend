@@ -15,8 +15,8 @@ export type EventTitleMarkerVerticalProps = {
 };
 
 /**
- * Solo modo etiquetas vertical: layout (`writing-mode`) independiente del modo horizontal;
- * sin `.event-marker` ni `.event-hit--*`.
+ * Modo etiquetas vertical: una fila horizontal [ disco | clip del texto ]. El clip fija tamaño
+ * físico (grosor × alto máx.); dentro va `writing-mode` para ellipsis estable.
  */
 export function EventTitleMarkerVertical({
   event,
@@ -29,9 +29,12 @@ export function EventTitleMarkerVertical({
   onSelectEvent,
   timelineSelectedEventDotRef,
 }: EventTitleMarkerVerticalProps) {
-  const captionStyle =
+  const clipStyle =
     pl.columnPx != null
-      ? ({ width: `${Math.round(pl.columnPx)}px` } as CSSProperties)
+      ? ({
+          width: `${Math.round(pl.columnPx)}px`,
+          '--evt-v-read-inner-max': 'unset'
+        } as CSSProperties)
       : undefined;
 
   return (
@@ -56,15 +59,11 @@ export function EventTitleMarkerVertical({
         onClick={() => onSelectEvent(event)}
         title={eventPointerTitle(event)}
       >
-        <span
-          className={`event-dot event-dot--titles ${isEventActive ? "active" : ""}`}
-          aria-hidden="true"
-        />
-        <span
-          className="evt-v-caption timeline-event-title"
-          style={captionStyle}
-        >
-          {event.title}
+        <span className="evt-v-disk-slot" aria-hidden="true">
+          <span className={`event-dot event-dot--titles ${isEventActive ? "active" : ""}`} />
+        </span>
+        <span className="evt-v-clip" style={clipStyle}>
+          <span className="evt-v-caption timeline-event-title">{event.title}</span>
         </span>
       </button>
     </div>
