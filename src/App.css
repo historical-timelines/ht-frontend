@@ -1861,7 +1861,7 @@
 
 /*
  * Pista al 100% + rótulo en la misma celda (rejilla): los % de fecha coinciden con eje y títulos.
- * El rótulo es sticky horizontal (ver spec en `TimelineSemanticEventLanes.tsx`).
+ * El rótulo es sticky horizontal (ver spec en `timeline/ui/TimelineSemanticEventLanes.tsx`).
  */
 .events-lane--semantic {
   position: relative;

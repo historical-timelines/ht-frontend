@@ -1,6 +1,6 @@
 import type { CSSProperties, RefObject } from "react";
-import type { TimelineEvent } from "../types";
-import type { EventLabelPlacement } from "./timeline/eventLabelLayout";
+import type { TimelineEvent } from "../../../types";
+import type { EventLabelPlacement } from "../eventLabelLayout";
 
 export type EventTitleMarkerProps = {
   event: TimelineEvent;

@@ -4,7 +4,7 @@
  * ## Qué hace
  * - Coloca títulos en “carriles” (índice `lane`, no confundir con carriles semánticos POL/MIL/…)
  *   y devuelve `maxWidthPx` y `anchor` (start|center|end) por evento, para estilos en
- *   [`../TimelineEventTitlesLane.tsx`](../TimelineEventTitlesLane.tsx).
+ *   [`./ui/TimelineEventTitlesLane.tsx`](./ui/TimelineEventTitlesLane.tsx).
  *
  * ## Eje e inputs
  * - Pista 0–100% vía `trackPct` (misma convención que el chart).

@@ -43,7 +43,7 @@ export function verticalColumnWidthPx(
   return Math.max(0.78 * remPx, 1.02 * EVENT_LABEL_VROT_LABEL_FONT_EM * remPx);
 }
 
-/** Padding unificado del wrap vertical (par con CSS `calc(... - 24px)`). Ver [`EventTitleMarker`](../EventTitleMarker.tsx). */
+/** Padding unificado del wrap vertical (par con CSS `calc(... - 24px)`). Ver [`EventTitleMarker`](./ui/EventTitleMarker.tsx). */
 export const EVENT_TITLE_VROT_WRAP_PAD_PX = 24;
 
 /**
@@ -152,7 +152,7 @@ export type VerticalEventTitlesRowLayoutPx = {
  *
  * **Invariante (conector):** el trazo punteado no depende de la rotación del texto, solo de la
  * geometría de esta fila (sizer + `connectorBottomInsetPx` / `--ev-titles-v-connector-btm`) — ver
- * `connectorBottomInsetPx` y [`TimelineEventTitlesLane`](../TimelineEventTitlesLane.tsx).
+ * `connectorBottomInsetPx` y [`TimelineEventTitlesLane`](./ui/TimelineEventTitlesLane.tsx).
  * Recalibración: medición canvas (misma fuente que `measureEventTitleWidthsPx`); si hubiera
  * desvío con webfonts, se podría añadir un ResizeObserver aislado, no hace falta hoy.
  */

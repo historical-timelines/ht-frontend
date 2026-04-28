@@ -18,13 +18,13 @@ import type { CSSProperties } from "react";
  * referidos al mismo ancho que `.timeline-stack` / eje.
  */
 
-import type { StudyMode } from "../causality";
+import type { StudyMode } from "../../../causality";
 import {
   EVENT_LANE_ORDER,
   LANE_UI,
   type EventLaneId,
-} from "../eventLanes";
-import type { Selection, TimelineEvent } from "../types";
+} from "../../../eventLanes";
+import type { Selection, TimelineEvent } from "../../../types";
 
 function eventPointerTitle(e: TimelineEvent, mode: StudyMode): string {
   if (mode === "exam") return e.title;

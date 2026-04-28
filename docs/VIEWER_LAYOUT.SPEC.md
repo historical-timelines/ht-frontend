@@ -11,7 +11,7 @@ Definir cómo la app ocupa el **viewport** en modo visor / timeline (`viewer-pha
 
 ## Scope
 
-**In scope:** Altura y `overflow` de `html`, `body`, `#root`; `.viewer-shell`, grid `.viewer-main`, `.viewer-chart-wrap`, bleed del chart en visor, emparejamiento de `overflow` en `.timeline-scroll`; `ViewerLower` y scroll interno. Hojas de estilo: `App.css`, `ViewerLower.css`, `index.css` bajo `viewer-phase`.
+**In scope:** Altura y `overflow` de `html`, `body`, `#root`; `.viewer-shell`, grid `.viewer-main`, `.viewer-chart-wrap`, bleed del chart en visor, emparejamiento de `overflow` en `.timeline-scroll`; `ViewerLower` y scroll interno. Hojas de estilo: `src/App.css`, `src/viewer/ViewerLower.css`, `src/index.css` bajo `viewer-phase`.
 
 **Out of scope:** Cómo se **calculan** fechas, títulos de eventos o marcas del eje; eso va en [`TIMELINE_LAYOUT.SPEC.md`](./TIMELINE_LAYOUT.SPEC.md). Cualquier cambio de **altura** del timeline (etiquetas, carriles del eje) debe seguir respetando este documento.
 
@@ -37,7 +37,7 @@ En CSS, la fila 1 de `.viewer-main` es `auto`: altura según contenido del timel
 **Componente:** `ViewerLower` (`.viewer-lower`).
 
 - Ocupa el espacio **restante** bajo la región superior (`minmax(0, 1fr)` en el grid).
-- **Desktop:** dos columnas (listas, detalle). **Estrecho:** apilado; detalle en `ViewerLower.css`.
+- **Desktop:** dos columnas (listas, detalle). **Estrecho:** apilado; detalle en `src/viewer/ViewerLower.css`.
 - El scroll **vertical** solo **dentro** de listas/detalle, no en el documento ni en el shell entero.
 
 ### Cadena de layout (referencia)

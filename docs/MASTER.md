@@ -166,15 +166,15 @@ Router
     │   │   │               ├── period bars
     │   │   │               ├── 5× TimelineSemanticEventLanes (dots)
     │   │   │               └── event-titles (collision-detected labels)
-    │   │   └── row2: ViewerLower (src/ViewerLower.tsx)
+    │   │   └── row2: ViewerLower (`src/viewer/ViewerLower.tsx`)
     │   │       ├── col--list (collapsible periods + events list)
     │   │       └── col--detail (selected item's title + bullets)
     └── KeyboardHelpModal (shown on `?` key)
 ```
 
 Supporting modules:
-- `TimelineSemanticEventLanes.tsx` — renders event dots per lane
-- `LaneGlyph.tsx` — SVG icons for each lane
+- `src/timeline/ui/TimelineSemanticEventLanes.tsx` — renders event dots per lane
+- `src/timeline/ui/LaneGlyph.tsx` — SVG icons for each lane
 - `eventLanes.ts` — lane enum, colors, lane-ordering helpers
 - `causality.ts` — causal chain traversal (`causalHighlightSet`, `causalEdgesInSet`)
 
@@ -300,12 +300,12 @@ The backend must respect the same `TimelineEvent` / `Period` shape defined in `t
 | Task | Files |
 |------|-------|
 | Add / edit events or periods | `timelineHistoriaArgentina.ts`, `types.ts` |
-| Touch viewer CSS | `docs/VIEWER_LAYOUT.md` → `src/App.css`, `src/index.css`, `src/ViewerLower.css` |
-| Touch viewer DOM structure | `src/App.tsx`, `src/ViewerLower.tsx` |
-| Change routing | `src/Router.tsx` |
-| Change lane colors or icons | `eventLanes.ts`, `src/LaneGlyph.tsx` |
+| Touch viewer CSS | `docs/VIEWER_LAYOUT.SPEC.md` → `src/App.css`, `src/index.css`, `src/viewer/ViewerLower.css` |
+| Touch viewer DOM structure | `src/App.tsx`, `src/viewer/ViewerLower.tsx` |
+| Change routing | `src/shell/Router.tsx` |
+| Change lane colors or icons | `eventLanes.ts`, `src/timeline/ui/LaneGlyph.tsx` |
 | Change causal logic | `causality.ts` |
 | Change build / deploy | `vite.config.ts`, `.github/workflows/deploy.yml` |
 | Add backend endpoint | `backend/` (not yet created) |
 | Agent layout traps (quick) | `AGENTS.md` |
-| Agent layout traps (full) | `docs/VIEWER_LAYOUT.md` |
+| Agent layout traps (full) | `docs/VIEWER_LAYOUT.SPEC.md` |

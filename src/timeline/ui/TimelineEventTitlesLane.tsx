@@ -1,11 +1,11 @@
 import type { CSSProperties, RefObject } from "react";
-import type { StudyMode } from "../causality";
-import { semanticConnectorLaneSpanCount } from "../eventLanes";
-import type { Selection, TimelineEvent } from "../types";
+import type { StudyMode } from "../../../causality";
+import { semanticConnectorLaneSpanCount } from "../../../eventLanes";
+import type { Selection, TimelineEvent } from "../../../types";
 import { EventTitleMarker } from "./EventTitleMarker";
 import { EventTitleMarkerVertical } from "./EventTitleMarkerVertical";
-import type { EventLabelPlacement } from "./timeline/eventLabelLayout";
-import { verticalEventTitlesRowLayoutPx } from "./timeline/eventLabelLayout";
+import type { EventLabelPlacement } from "../eventLabelLayout";
+import { verticalEventTitlesRowLayoutPx } from "../eventLabelLayout";
 
 export type TimelineCausalitySvgEdge = {
   from: TimelineEvent;

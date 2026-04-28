@@ -19,17 +19,16 @@ import {
 import { EVENT_LANE_ORDER, LANE_UI, type EventLaneId } from "../eventLanes";
 import type { Period, Selection, TimelineEvent } from "../types";
 import { useNavigate } from "react-router-dom";
-import { SITE_INSTAGRAM_URL } from "./siteLinks";
-import { ViewerLower } from "./ViewerLower";
-import { KeyboardHelpModal } from "./KeyboardHelpModal";
-import { TimelineSemanticEventLanes } from "./TimelineSemanticEventLanes";
-import { TimelineEventTitlesLane } from "./TimelineEventTitlesLane";
+import { SITE_INSTAGRAM_URL, KeyboardHelpModal } from "./shell";
+import { ViewerLower } from "./viewer";
 /* Títulos de eventos: si `timelineZoom < EVENT_LABEL_VERTICAL_ZOOM_THRESHOLD` van verticales (layout+CSS); ver `timeline/eventLabelLayout.ts`. */
 import {
   assignEventLabelLanes,
   EVENT_LABEL_VERTICAL_ZOOM_THRESHOLD,
   labelIntervalsOverlap,
-} from "./timeline/eventLabelLayout";
+  TimelineSemanticEventLanes,
+  TimelineEventTitlesLane,
+} from "./timeline";
 import "./App.css";
 
 function formatDate(d: Date): string {

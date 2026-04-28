@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
-import type { EventLaneId } from "../types";
-import { LANE_UI, type LaneGlyphId } from "../eventLanes";
+import type { EventLaneId } from "../../../types";
+import { LANE_UI, type LaneGlyphId } from "../../../eventLanes";
 
 function GlyphPath({ id }: { id: LaneGlyphId }) {
   switch (id) {

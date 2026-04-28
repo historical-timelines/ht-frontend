@@ -1,5 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
-import App from "./App";
+import App from "../App";
 import { WelcomeScreen } from "./WelcomeScreen";
 
 function WelcomeRoute() {

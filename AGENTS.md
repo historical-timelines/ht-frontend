@@ -24,7 +24,7 @@ En Cursor: regla siempre activa [`.cursor/rules/viewer-layout.mdc`](./.cursor/ru
 
 - `src/App.tsx` — estructura DOM del visor y timeline
 - `src/App.css` — `.viewer-main`, `.viewer-shell`, `.viewer-chart-wrap`, `section.chart.chart-bleed.chart--viewer`, `.timeline-scroll`
-- `src/ViewerLower.tsx` / `src/ViewerLower.css` — panel inferior (grid `1fr`, scroll interno)
+- `src/viewer/ViewerLower.tsx` / `src/viewer/ViewerLower.css` — panel inferior (grid `1fr`, scroll interno)
 - `src/index.css` — `html.viewer-phase`, `#root`
 
 ### Eje temporal: fechas “encimadas” y zoom (intencional)

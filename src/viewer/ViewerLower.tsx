@@ -5,10 +5,10 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import type { StudyMode } from "../causality";
-import { lanesInDisplayOrder, LANE_UI } from "../eventLanes";
-import type { Period, TimelineEvent, Selection } from "../types";
-import { LaneGlyph } from "./LaneGlyph";
+import type { StudyMode } from "../../causality";
+import { lanesInDisplayOrder, LANE_UI } from "../../eventLanes";
+import type { Period, TimelineEvent, Selection } from "../../types";
+import { LaneGlyph } from "../timeline";
 import "./ViewerLower.css";
 
 function formatDate(d: Date): string {

@@ -1,5 +1,5 @@
 import type { CSSProperties, RefObject } from "react";
-import type { TimelineEvent } from "../types";
+import type { TimelineEvent } from "../../../types";
 
 export type EventTitleMarkerVerticalProps = {
   event: TimelineEvent;
