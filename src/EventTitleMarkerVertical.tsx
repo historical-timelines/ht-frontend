@@ -1,10 +1,8 @@
 import type { CSSProperties, RefObject } from "react";
 import type { TimelineEvent } from "../types";
-import type { EventLabelPlacement } from "./timeline/eventLabelLayout";
 
 export type EventTitleMarkerVerticalProps = {
   event: TimelineEvent;
-  placement: EventLabelPlacement;
   leftPct: number;
   isEventActive: boolean;
   isRelated: boolean;
@@ -20,7 +18,6 @@ export type EventTitleMarkerVerticalProps = {
  */
 export function EventTitleMarkerVertical({
   event,
-  placement: pl,
   leftPct: p,
   isEventActive,
   isRelated,

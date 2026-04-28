@@ -155,7 +155,6 @@ export function TimelineEventTitlesLane({
             <EventTitleMarkerVertical
               key={`title-${e.title}-${e.date.toISOString()}`}
               event={e}
-              placement={pl}
               leftPct={p}
               isEventActive={isEventActive}
               isRelated={isRelated}
