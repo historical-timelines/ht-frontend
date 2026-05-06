@@ -2,6 +2,7 @@ export { HttpTimelineRepo, TimelineApiError } from "./HttpTimelineRepo";
 export { LocalStorageTimelineRepo } from "./LocalStorageTimelineRepo";
 export { TimelineEditionService } from "./TimelineEditionService";
 export { createTimelineRepo } from "./createTimelineRepo";
+export { HttpAiService, AiApiError } from "./HttpAiService";
 export type {
   CreateTimelineInput,
   CreateTimelineEventInput,
@@ -14,3 +15,9 @@ export type {
   TimelineValidationError,
   UpdateTimelineEventInput,
 } from "./TimelineRepo";
+export type {
+  AiConversation,
+  AiMessage,
+  TimelineChange,
+  TimelineChangeType,
+} from "./aiConversation";

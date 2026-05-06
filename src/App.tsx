@@ -20,7 +20,13 @@ import { EVENT_LANE_ORDER, LANE_UI, type EventLaneId } from "../eventLanes";
 import type { Period, Selection, TimelineEvent } from "../types";
 import { useNavigate, useParams } from "react-router-dom";
 import { SITE_INSTAGRAM_URL, KeyboardHelpModal } from "./shell";
-import { EventEditorModal, ViewerDetailPanel, ViewerIndexPanel } from "./viewer";
+import {
+  EventEditorModal,
+  ViewerDetailPanel,
+  ViewerIndexPanel,
+  AiChatPanel,
+  type AiChatError,
+} from "./viewer";
 /* Títulos de eventos: único modo vertical (layout+CSS); ver `timeline/eventLabelLayout.ts`. */
 import {
   axisMarkLaneOffsetPx,
@@ -46,14 +52,21 @@ import {
 import { AxisTickMark } from "./AxisTickMark";
 import {
   TimelineEditionService,
+  HttpAiService,
   createTimelineRepo,
   type TimelineEventDraft,
+  type AiConversation,
+  type TimelineChange,
 } from "./timelineEdition";
 import { useThemeMode, type ThemeMode } from "./shell/theme";
 import "./App.css";
 
 const timelineRepo = createTimelineRepo();
 const timelineEditionService = new TimelineEditionService(timelineRepo);
+const aiService = new HttpAiService(
+  (import.meta.env.VITE_TIMELINES_API_BASE_URL as string | undefined) ??
+    "https://ukpswhaxmg.us-east-1.awsapprunner.com"
+);
 
 function formatDate(d: Date): string {
   return formatHistoricalDate(d);
@@ -696,6 +709,13 @@ export default function App() {
     | null
   >(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [aiChatOpen, setAiChatOpen] = useState(false);
+  const [aiConversation, setAiConversation] = useState<AiConversation | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSending, setAiSending] = useState(false);
+  const [aiApplyingMessageId, setAiApplyingMessageId] = useState<string | null>(null);
+  const [aiDismissedIds, setAiDismissedIds] = useState<ReadonlySet<string>>(new Set());
+  const [aiError, setAiError] = useState<AiChatError | null>(null);
   const [viewerHeaderCollapsed, setViewerHeaderCollapsed] = useState(false);
   const [indexOpen, setIndexOpen] = useState(false);
   const [detailCollapsed, setDetailCollapsed] = useState(false);
@@ -796,6 +816,59 @@ export default function App() {
       cancelled = true;
     };
   }, [timelineSlug]);
+
+  useEffect(() => {
+    if (!aiChatOpen || !selectedTimelineId) return;
+    let cancelled = false;
+    async function loadConversation() {
+      setAiLoading(true);
+      try {
+        const conv = await aiService.getConversation(selectedTimelineId!);
+        if (!cancelled) setAiConversation(conv);
+      } catch {
+        // No conversation yet is fine; leave as null
+      } finally {
+        if (!cancelled) setAiLoading(false);
+      }
+    }
+    loadConversation();
+    return () => { cancelled = true; };
+  }, [aiChatOpen, selectedTimelineId]);
+
+  const sendAiMessage = useCallback(async (content: string) => {
+    if (!selectedTimelineId) return;
+    setAiSending(true);
+    setAiError(null);
+    try {
+      const conv = await aiService.sendMessage(selectedTimelineId, content);
+      setAiConversation(conv);
+    } catch (error) {
+      console.error("AI message failed", error);
+      setAiError({ kind: "send", message: String(error) });
+    } finally {
+      setAiSending(false);
+    }
+  }, [selectedTimelineId]);
+
+  const applyAiChanges = useCallback(async (changes: TimelineChange[], messageId: string) => {
+    if (!selectedTimelineId) return;
+    setAiApplyingMessageId(messageId);
+    setAiError(null);
+    try {
+      const record = await aiService.applyOperations(selectedTimelineId, changes);
+      setTimeline(record.timeline);
+      setAiDismissedIds((prev) => new Set([...prev, messageId]));
+    } catch (error) {
+      console.error("Apply operations failed", error);
+      setAiError({ kind: "apply", message: String(error) });
+    } finally {
+      setAiApplyingMessageId(null);
+    }
+  }, [selectedTimelineId]);
+
+  const dismissAiChanges = useCallback((messageId: string) => {
+    setAiDismissedIds((prev) => new Set([...prev, messageId]));
+  }, []);
 
   const axisShowYearFlags = useMemo(
     () => computeAxisShowYearFlags(axisMarks),
@@ -2414,6 +2487,21 @@ export default function App() {
           />
         ) : null}
         <KeyboardHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+        {selectedTimelineId ? (
+          <AiChatPanel
+            collapsed={!aiChatOpen}
+            conversation={aiConversation}
+            loading={aiLoading}
+            sending={aiSending}
+            applyingMessageId={aiApplyingMessageId}
+            dismissedMessageIds={aiDismissedIds}
+            error={aiError}
+            onToggleCollapsed={() => setAiChatOpen((open) => !open)}
+            onSend={sendAiMessage}
+            onApply={applyAiChanges}
+            onDismiss={dismissAiChanges}
+          />
+        ) : null}
       </div>
     </div>
   );
