@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /home/ichigolas/Source/ht/frontend.claude status)",
+      "Bash(git -C /home/ichigolas/Source/ht/frontend.claude branch)",
+      "Bash(git *)",
+      "Bash(npx --no tsc --noEmit)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(NODE_OPTIONS=\"\" node /home/ichigolas/Source/ht/frontend.claude/node_modules/typescript/bin/tsc --noEmit --project /home/ichigolas/Source/ht/frontend.claude/tsconfig.json)",
+      "Bash(npm run *)"
+    ]
+  }
+}

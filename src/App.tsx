@@ -17,10 +17,16 @@ import {
   type StudyMode,
 } from "../causality";
 import { EVENT_LANE_ORDER, LANE_UI, type EventLaneId } from "../eventLanes";
-import type { Period, Selection, TimelineEvent } from "../types";
+import type { Period, Selection, Timeline, TimelineEvent } from "../types";
 import { useNavigate, useParams } from "react-router-dom";
 import { SITE_INSTAGRAM_URL, KeyboardHelpModal } from "./shell";
-import { EventEditorModal, ViewerDetailPanel, ViewerIndexPanel } from "./viewer";
+import {
+  EventEditorModal,
+  ViewerDetailPanel,
+  ViewerIndexPanel,
+  AiChatPanel,
+  type AiChatError,
+} from "./viewer";
 /* Títulos de eventos: único modo vertical (layout+CSS); ver `timeline/eventLabelLayout.ts`. */
 import {
   axisMarkLaneOffsetPx,
@@ -46,14 +52,23 @@ import {
 import { AxisTickMark } from "./AxisTickMark";
 import {
   TimelineEditionService,
+  HttpAiService,
+  applyChangesLocally,
   createTimelineRepo,
   type TimelineEventDraft,
+  type AiConversation,
+  type TimelineChange,
+  type PreviewChangeSet,
 } from "./timelineEdition";
 import { useThemeMode, type ThemeMode } from "./shell/theme";
 import "./App.css";
 
 const timelineRepo = createTimelineRepo();
 const timelineEditionService = new TimelineEditionService(timelineRepo);
+const aiService = new HttpAiService(
+  (import.meta.env.VITE_TIMELINES_API_BASE_URL as string | undefined) ??
+    "https://ukpswhaxmg.us-east-1.awsapprunner.com"
+);
 
 function formatDate(d: Date): string {
   return formatHistoricalDate(d);
@@ -633,13 +648,19 @@ function formatApproxTimeSpan(ms: number): string {
 export default function App() {
   const { timelineSlug } = useParams<{ timelineSlug: string }>();
   const [timeline, setTimeline] = useState(() => timelineHistoriaArgentina);
+  const timelineRef = useRef(timeline);
+  useEffect(() => { timelineRef.current = timeline; }, [timeline]);
   const [selectedTimelineId, setSelectedTimelineId] = useState<string | null>(null);
   const [timelineTitle, setTimelineTitle] = useState("Cargando…");
   const [timelineDescription, setTimelineDescription] = useState<string | null>(null);
   const [timelineApiStatus, setTimelineApiStatus] = useState<
     "loading" | "ready" | "error"
   >("loading");
-  const { periods, events } = timeline;
+  const [previewedMessageId, setPreviewedMessageId] = useState<string | null>(null);
+  const [previewTimeline, setPreviewTimeline] = useState<Timeline | null>(null);
+  const [previewChangeSet, setPreviewChangeSet] = useState<PreviewChangeSet | null>(null);
+  const previewMode = previewedMessageId != null;
+  const { periods, events } = previewTimeline ?? timeline;
 
   const { min, max } = useMemo(() => {
     const times: number[] = [];
@@ -696,6 +717,13 @@ export default function App() {
     | null
   >(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [aiChatOpen, setAiChatOpen] = useState(false);
+  const [aiConversation, setAiConversation] = useState<AiConversation | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiSending, setAiSending] = useState(false);
+  const [aiApplyingMessageId, setAiApplyingMessageId] = useState<string | null>(null);
+  const [aiDismissedIds, setAiDismissedIds] = useState<ReadonlySet<string>>(new Set());
+  const [aiError, setAiError] = useState<AiChatError | null>(null);
   const [viewerHeaderCollapsed, setViewerHeaderCollapsed] = useState(false);
   const [indexOpen, setIndexOpen] = useState(false);
   const [detailCollapsed, setDetailCollapsed] = useState(false);
@@ -796,6 +824,113 @@ export default function App() {
       cancelled = true;
     };
   }, [timelineSlug]);
+
+  useEffect(() => {
+    if (!aiChatOpen || !selectedTimelineId) return;
+    let cancelled = false;
+    async function loadConversation() {
+      setAiLoading(true);
+      try {
+        const conv = await aiService.getConversation(selectedTimelineId!);
+        if (!cancelled) setAiConversation(conv);
+      } catch {
+        // No conversation yet is fine; leave as null
+      } finally {
+        if (!cancelled) setAiLoading(false);
+      }
+    }
+    loadConversation();
+    return () => { cancelled = true; };
+  }, [aiChatOpen, selectedTimelineId]);
+
+  const sendAiMessage = useCallback(async (content: string) => {
+    if (!selectedTimelineId) return;
+    setAiSending(true);
+    setAiError(null);
+
+    // Mostrar el mensaje del usuario de inmediato (optimistic)
+    const optimisticMsg = {
+      id: "__optimistic__",
+      role: "user" as const,
+      content,
+      createdAt: new Date(),
+      proposedChanges: [] as TimelineChange[],
+    };
+    setAiConversation((prev) =>
+      prev
+        ? { ...prev, messages: [...prev.messages, optimisticMsg] }
+        : { timelineId: selectedTimelineId, messages: [optimisticMsg] }
+    );
+
+    try {
+      const conv = await aiService.sendMessage(selectedTimelineId, content);
+      setAiConversation(conv);
+
+      // Auto-preview: activar si el último mensaje del asistente tiene cambios
+      const lastMsg = conv.messages[conv.messages.length - 1];
+      if (lastMsg?.role === "assistant" && lastMsg.proposedChanges.length > 0) {
+        const { timeline: preview, changeSet } = applyChangesLocally(
+          timelineRef.current,
+          lastMsg.proposedChanges
+        );
+        setPreviewTimeline(preview);
+        setPreviewChangeSet(changeSet);
+        setPreviewedMessageId(lastMsg.id);
+      }
+    } catch (error) {
+      console.error("AI message failed", error);
+      setAiError({ kind: "send", message: String(error) });
+      // Revertir el mensaje optimista
+      setAiConversation((prev) =>
+        prev
+          ? { ...prev, messages: prev.messages.filter((m) => m.id !== "__optimistic__") }
+          : prev
+      );
+    } finally {
+      setAiSending(false);
+    }
+  }, [selectedTimelineId]);
+
+  const applyAiChanges = useCallback(async (changes: TimelineChange[], messageId: string) => {
+    if (!selectedTimelineId) return;
+    setAiApplyingMessageId(messageId);
+    setAiError(null);
+    try {
+      const record = await aiService.applyOperations(selectedTimelineId, changes);
+      setTimeline(record.timeline);
+      setAiDismissedIds((prev) => new Set([...prev, messageId]));
+      setPreviewedMessageId(null);
+      setPreviewTimeline(null);
+      setPreviewChangeSet(null);
+    } catch (error) {
+      console.error("Apply operations failed", error);
+      setAiError({ kind: "apply", message: String(error) });
+    } finally {
+      setAiApplyingMessageId(null);
+    }
+  }, [selectedTimelineId]);
+
+  const dismissAiChanges = useCallback((messageId: string) => {
+    setAiDismissedIds((prev) => new Set([...prev, messageId]));
+    if (previewedMessageId === messageId) {
+      setPreviewedMessageId(null);
+      setPreviewTimeline(null);
+      setPreviewChangeSet(null);
+    }
+  }, [previewedMessageId]);
+
+  const cancelPreview = useCallback(() => {
+    setPreviewedMessageId(null);
+    setPreviewTimeline(null);
+    setPreviewChangeSet(null);
+  }, []);
+
+  const startPreview = useCallback((changes: TimelineChange[], messageId: string) => {
+    const { timeline: preview, changeSet } = applyChangesLocally(timeline, changes);
+    setPreviewTimeline(preview);
+    setPreviewChangeSet(changeSet);
+    setPreviewedMessageId(messageId);
+  }, [timeline]);
 
   const axisShowYearFlags = useMemo(
     () => computeAxisShowYearFlags(axisMarks),
@@ -1417,6 +1552,12 @@ export default function App() {
       if (e.defaultPrevented) return;
       if (isTypingTarget(e.target)) return;
 
+      if (e.key === "Backspace" && e.ctrlKey && previewedMessageId != null) {
+        e.preventDefault();
+        cancelPreview();
+        return;
+      }
+
       if (helpOpen) {
         if (e.key === "Escape" || e.key === "?") {
           e.preventDefault();
@@ -1532,6 +1673,8 @@ export default function App() {
     stepEvent,
     eventStepAvailability.canPrev,
     eventStepAvailability.canNext,
+    previewedMessageId,
+    cancelPreview,
   ]);
 
   return (
@@ -1726,9 +1869,10 @@ export default function App() {
                   <button
                     type="button"
                     className="viewer-map-btn viewer-map-btn--with-label"
-                    onClick={() => setEditorState({ kind: "create" })}
+                    onClick={() => !previewMode && setEditorState({ kind: "create" })}
+                    disabled={previewMode}
                     aria-label="Crear evento"
-                    title="Crear evento"
+                    title={previewMode ? "No disponible en modo vista previa" : "Crear evento"}
                   >
                     <svg
                       className="viewer-header-icon-svg"
@@ -1931,8 +2075,22 @@ export default function App() {
 
         <div className="viewer-main">
         <div
-          className={`viewer-chart-wrap ${sel != null ? "viewer-chart-wrap--pinned" : ""}`.trim()}
+          className={`viewer-chart-wrap ${sel != null ? "viewer-chart-wrap--pinned" : ""}${previewMode ? " viewer-chart-wrap--preview" : ""}`.trim()}
         >
+          {previewMode && (
+            <div className="timeline-preview-banner">
+              <span className="timeline-preview-banner__label">
+                Vista previa de cambios sugeridos
+              </span>
+              <button
+                type="button"
+                className="timeline-preview-banner__cancel"
+                onClick={cancelPreview}
+              >
+                Cancelar <kbd>Ctrl+⌫</kbd>
+              </button>
+            </div>
+          )}
       <section
         className="chart chart-bleed chart--viewer"
         aria-label="Línea de tiempo"
@@ -2143,11 +2301,19 @@ export default function App() {
                         0.8
                       );
                       const isActive = activePeriodForTimeline === p;
+                      const periodId = (p as unknown as Record<string, unknown>)["id"] as string | undefined ?? p.title;
+                      const isPreviewAdded = previewChangeSet?.added.has(periodId) ?? false;
+                      const isPreviewUpdated = previewChangeSet?.updated.has(periodId) ?? false;
                       return (
                         <button
                           key={p.title}
                           type="button"
-                          className={`bar ${isActive ? "active" : ""}`}
+                          className={[
+                            "bar",
+                            isActive ? "active" : "",
+                            isPreviewAdded ? "bar--preview-added" : "",
+                            isPreviewUpdated ? "bar--preview-updated" : "",
+                          ].filter(Boolean).join(" ")}
                           ref={(el) => {
                             if (isActive) {
                               timelineSelectedPeriodBarRef.current = el;
@@ -2185,6 +2351,7 @@ export default function App() {
                   studyMode={studyMode}
                   causalHighlight={causalHighlight}
                   onSelectEvent={(item) => setSel({ kind: "event", item })}
+                  previewHighlight={previewChangeSet ?? undefined}
                 />
                 <TimelineEventTitlesLane
                   eventsSorted={eventsSorted}
@@ -2206,6 +2373,7 @@ export default function App() {
                   timelineSelectedEventDotRef={timelineSelectedEventDotRef}
                   clusters={eventClusters}
                   onClusterClick={onClusterClick}
+                  previewHighlight={previewChangeSet ?? undefined}
                 />
               </div>
             </div>
@@ -2390,11 +2558,12 @@ export default function App() {
             activePeriodForTimeline={activePeriodForTimeline}
             periodsForEvent={periodsForEvent}
             collapsed={detailCollapsed}
+            previewMode={previewMode}
             onToggleCollapsed={() =>
               setDetailCollapsed((collapsed) => !collapsed)
             }
             onSelectEvent={(e) => setSel({ kind: "event", item: e })}
-            onEditEvent={(e) => setEditorState({ kind: "edit", event: e })}
+            onEditEvent={(e) => !previewMode && setEditorState({ kind: "edit", event: e })}
             onDeleteEvent={deleteSelectedEvent}
           />
         </div>
@@ -2414,6 +2583,24 @@ export default function App() {
           />
         ) : null}
         <KeyboardHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+        {selectedTimelineId ? (
+          <AiChatPanel
+            collapsed={!aiChatOpen}
+            conversation={aiConversation}
+            loading={aiLoading}
+            sending={aiSending}
+            applyingMessageId={aiApplyingMessageId}
+            dismissedMessageIds={aiDismissedIds}
+            previewedMessageId={previewedMessageId}
+            error={aiError}
+            onToggleCollapsed={() => setAiChatOpen((open) => !open)}
+            onSend={sendAiMessage}
+            onApply={applyAiChanges}
+            onDismiss={dismissAiChanges}
+            onPreview={startPreview}
+            onCancelPreview={cancelPreview}
+          />
+        ) : null}
       </div>
     </div>
   );

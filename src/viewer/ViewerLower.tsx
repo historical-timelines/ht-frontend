@@ -1,10 +1,9 @@
-import {
+import React, {
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
-  type FormEvent,
   type ReactNode,
 } from "react";
 import type { StudyMode } from "../../causality";
@@ -35,6 +34,7 @@ type ViewerDetailPanelProps = {
   activePeriodForTimeline: Period | null;
   periodsForEvent: Period[];
   collapsed: boolean;
+  previewMode: boolean;
   onToggleCollapsed: () => void;
   onSelectEvent: (e: TimelineEvent) => void;
   onEditEvent: (e: TimelineEvent) => void;
@@ -318,7 +318,7 @@ export function EventEditorModal({
   const selectedOptions = (select: HTMLSelectElement): string[] =>
     Array.from(select.selectedOptions).map((option) => option.value);
 
-  const submit = async (e: FormEvent) => {
+  const submit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
@@ -470,6 +470,7 @@ export function ViewerDetailPanel({
   activePeriodForTimeline,
   periodsForEvent,
   collapsed,
+  previewMode,
   onToggleCollapsed,
   onSelectEvent,
   onEditEvent,
@@ -549,6 +550,8 @@ export function ViewerDetailPanel({
                   <button
                     type="button"
                     className="viewer-editor-btn"
+                    disabled={previewMode}
+                    title={previewMode ? "No disponible en modo vista previa" : undefined}
                     onClick={() => onEditEvent(sel.item)}
                   >
                     Editar
@@ -556,6 +559,8 @@ export function ViewerDetailPanel({
                   <button
                     type="button"
                     className="viewer-editor-btn viewer-editor-btn--danger"
+                    disabled={previewMode}
+                    title={previewMode ? "No disponible en modo vista previa" : undefined}
                     onClick={() => onDeleteEvent(sel.item)}
                   >
                     Eliminar
