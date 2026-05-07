@@ -19,7 +19,7 @@ import {
 import { EVENT_LANE_ORDER, LANE_UI, type EventLaneId } from "../eventLanes";
 import type { Period, Selection, Timeline, TimelineEvent } from "../types";
 import { useNavigate, useParams } from "react-router-dom";
-import { SITE_INSTAGRAM_URL, KeyboardHelpModal } from "./shell";
+import { KeyboardHelpModal } from "./shell";
 import {
   EventEditorModal,
   ViewerDetailPanel,
@@ -86,8 +86,6 @@ const TIMELINE_TRACK_INSET_LEFT_PCT = 7;
 const TIMELINE_TRACK_INSET_RIGHT_PCT = 4;
 
 /** Repositorio público del visor (icono en la barra del visor). */
-const VIEWER_SOURCE_REPO_URL =
-  "https://github.com/nicooga/argentina-timeline-poc";
 
 const THEME_MODE_OPTIONS: readonly { id: ThemeMode; label: string }[] = [
   { id: "system", label: "Sistema" },
@@ -566,8 +564,6 @@ const TIMELINE_ZOOM_MIN = 0.35;
 const TIMELINE_ZOOM_DEFAULT_MAX = 14;
 const TIMELINE_ZOOM_STEP = 1.085;
 
-/** Ancho visual de la barra de escala (px); el texto indica el lapso temporal que cubre. */
-const SCALE_BAR_PX = 112;
 
 /** Viewport “tablet” para el visor: barras colapsadas al entrar. */
 const VIEWER_TABLET_MQ = "(max-width: 1024px)";
@@ -617,33 +613,6 @@ function touchPinchMidViewportX(scrollEl: HTMLElement, touches: TouchList): numb
   return mx - r.left;
 }
 
-/** Lapso aproximado representado por `ms`, para la leyenda tipo mapa (es-AR). */
-function formatApproxTimeSpan(ms: number): string {
-  if (!Number.isFinite(ms) || ms <= 0) return "—";
-  const day = 86_400_000;
-  const year = 365.25 * day;
-  const month = year / 12;
-  if (ms >= year) {
-    const y = ms / year;
-    if (y >= 10) return `≈ ${Math.round(y)} años`;
-    const rounded = y >= 2 ? Math.round(y) : Math.round(y * 10) / 10;
-    const unit = rounded === 1 ? "año" : "años";
-    return `≈ ${String(rounded).replace(".", ",")} ${unit}`;
-  }
-  if (ms >= month * 1.5) {
-    const m = ms / month;
-    const rounded = Math.max(1, Math.round(m));
-    return `≈ ${rounded} ${rounded === 1 ? "mes" : "meses"}`;
-  }
-  if (ms >= day) {
-    const d = ms / day;
-    const rounded = Math.max(1, Math.round(d));
-    return `≈ ${rounded} ${rounded === 1 ? "día" : "días"}`;
-  }
-  const h = ms / 3_600_000;
-  const rounded = Math.max(1, Math.round(h));
-  return `≈ ${rounded} ${rounded === 1 ? "hora" : "horas"}`;
-}
 
 export default function App() {
   const { timelineSlug } = useParams<{ timelineSlug: string }>();
@@ -672,6 +641,7 @@ export default function App() {
     }
     return { min: Math.min(...times), max: Math.max(...times) };
   }, [periods, events]);
+  const timelineRange = `${formatShortDate(new Date(min))} — ${formatShortDate(new Date(max))}`;
 
   const eventsSorted = useMemo(
     () => [...events].sort((a, b) => a.date.getTime() - b.date.getTime()),
@@ -725,7 +695,7 @@ export default function App() {
   const [aiAppliedIds, setAiAppliedIds] = useState<ReadonlySet<string>>(new Set());
   const [aiNoEffectIds, setAiNoEffectIds] = useState<ReadonlySet<string>>(new Set());
   const [aiError, setAiError] = useState<AiChatError | null>(null);
-  const [viewerHeaderCollapsed, setViewerHeaderCollapsed] = useState(false);
+
   const [indexOpen, setIndexOpen] = useState(false);
   const [detailCollapsed, setDetailCollapsed] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -1104,7 +1074,6 @@ export default function App() {
 
   useEffect(() => {
     const tablet = viewerIsTabletViewport();
-    setViewerHeaderCollapsed(false);
     setIndexOpen(false);
     setDetailCollapsed(tablet);
   }, []);
@@ -1266,14 +1235,6 @@ export default function App() {
   ]
     .filter(Boolean)
     .join(" ");
-
-  const rangeMs = max - min;
-
-  const scaleBarLabel = useMemo(() => {
-    if (stackWidthPx == null || stackWidthPx <= 0 || rangeMs <= 0) return "—";
-    const msForBar = (rangeMs / stackWidthPx) * SCALE_BAR_PX;
-    return formatApproxTimeSpan(msForBar);
-  }, [stackWidthPx, rangeMs]);
 
   useEffect(() => {
     const el = timelineStackRef.current;
@@ -1690,396 +1651,240 @@ export default function App() {
       <div
         className={`viewer-shell ${viewerShellClass} ${sel != null ? "viewer-shell--has-selection" : ""} ${indexOpen ? "viewer-shell--index-open" : ""} ${detailCollapsed ? "viewer-shell--detail-collapsed" : ""}`.trim()}
       >
-        <div
-          className={`viewer-header-wrap${viewerHeaderCollapsed ? " viewer-header-wrap--collapsed" : ""}`.trim()}
-        >
-          {!viewerHeaderCollapsed && (
-            <div className="viewer-header-inner">
-              <header
-                id="viewer-toolbar-main"
-                className="viewer-toolbar"
-                aria-label="Barra del visor"
-              >
-                <div className="viewer-toolbar-top">
-                  <button
-                    type="button"
-                    className="viewer-map-btn"
-                    onClick={() => {
-                      setIndexOpen((open) => {
-                        const next = !open;
-                        if (next) setDetailCollapsed(true);
-                        return next;
-                      });
-                    }}
-                    aria-expanded={indexOpen}
-                    aria-controls="viewer-index-panel"
-                    aria-label={indexOpen ? "Ocultar índice" : "Mostrar índice"}
-                    title={indexOpen ? "Ocultar índice" : "Índice"}
-                  >
-                    <svg
-                      className="viewer-header-icon-svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"
-                      />
-                    </svg>
-                  </button>
-                <div className="viewer-toolbar-text">
-                  <h1 className="viewer-toolbar-title">
-                    {timelineTitle} · línea de tiempo
-                  </h1>
-                  <p className="viewer-toolbar-range timeline-date">
-                    {formatShortDate(new Date(min))} —{" "}
-                    {formatShortDate(new Date(max))}
-                    {timelineApiStatus === "error" ? " · API no disponible" : ""}
-                  </p>
-                </div>
-                <div className="viewer-toolbar-actions">
-                  <button
-                    type="button"
-                    className="viewer-map-btn viewer-map-btn--with-label"
-                    onClick={createTimelineCopy}
-                    disabled={timelineApiStatus === "loading"}
-                    aria-label="Crear una copia editable del timeline actual"
-                    title="Crear copia"
-                  >
-                    <span>Copiar</span>
-                  </button>
-                  <div className="viewer-study-menu">
-                    <button
-                      type="button"
-                      className="viewer-map-btn"
-                      onClick={() => setStudyMenuOpen((open) => !open)}
-                      aria-expanded={studyMenuOpen}
-                      aria-haspopup="menu"
-                      aria-controls="viewer-study-menu"
-                      aria-label={`Modo de estudio: ${
-                        STUDY_MODE_OPTIONS.find((option) => option.id === studyMode)
-                          ?.label ?? "Normal"
-                      }`}
-                      title="Modo de estudio"
-                    >
-                      <StudyModeIcon mode={studyMode} />
-                    </button>
-                    {studyMenuOpen ? (
-                      <div
-                        id="viewer-study-menu"
-                        className="viewer-study-menu-popover"
-                        role="radiogroup"
-                        aria-label="Modo de estudio"
-                      >
-                        {STUDY_MODE_OPTIONS.map(({ id, label }) => (
-                          <button
-                            key={id}
-                            type="button"
-                            role="radio"
-                            aria-checked={studyMode === id}
-                            className={`viewer-study-menu-option${studyMode === id ? " viewer-study-menu-option--active" : ""}`.trim()}
-                            onClick={() => {
-                              setStudyMode(id);
-                              setStudyMenuOpen(false);
-                            }}
-                          >
-                            <StudyModeIcon mode={id} />
-                            <span>{label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                  <div className="viewer-theme-menu">
-                    <button
-                      type="button"
-                      className="viewer-map-btn"
-                      onClick={() => setThemeMenuOpen((open) => !open)}
-                      aria-expanded={themeMenuOpen}
-                      aria-haspopup="menu"
-                      aria-controls="viewer-theme-menu"
-                      aria-label={`Tema visual: ${
-                        THEME_MODE_OPTIONS.find((option) => option.id === themeMode)
-                          ?.label ?? "Sistema"
-                      }`}
-                      title="Tema visual"
-                    >
-                      <ThemeModeIcon mode={themeMode} />
-                    </button>
-                    {themeMenuOpen ? (
-                      <div
-                        id="viewer-theme-menu"
-                        className="viewer-theme-menu-popover"
-                        role="radiogroup"
-                        aria-label="Tema visual"
-                      >
-                        {THEME_MODE_OPTIONS.map(({ id, label }) => (
-                          <button
-                            key={id}
-                            type="button"
-                            role="radio"
-                            aria-checked={themeMode === id}
-                            className={`viewer-theme-menu-option${themeMode === id ? " viewer-theme-menu-option--active" : ""}`.trim()}
-                            onClick={() => {
-                              setThemeMode(id);
-                              setThemeMenuOpen(false);
-                            }}
-                          >
-                            <ThemeModeIcon mode={id} />
-                            <span>{label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                  {sel != null ? (
-                    <button
-                      type="button"
-                      className="viewer-map-btn"
-                      onClick={() => setDetailCollapsed((collapsed) => !collapsed)}
-                      aria-expanded={!detailCollapsed}
-                      aria-controls="viewer-detail-panel"
-                      aria-label={
-                        detailCollapsed
-                          ? "Expandir detalle seleccionado"
-                          : "Contraer detalle seleccionado"
-                      }
-                      title={detailCollapsed ? "Expandir detalle" : "Contraer detalle"}
-                    >
-                      <svg
-                        className="viewer-header-icon-svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <path
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d={
-                            detailCollapsed
-                              ? "M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"
-                              : "M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"
-                          }
-                        />
-                      </svg>
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="viewer-map-btn viewer-map-btn--with-label"
-                    onClick={() => !previewMode && setEditorState({ kind: "create" })}
-                    disabled={previewMode}
-                    aria-label="Crear evento"
-                    title={previewMode ? "No disponible en modo vista previa" : "Crear evento"}
-                  >
-                    <svg
-                      className="viewer-header-icon-svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M12 5v14M5 12h14"
-                      />
-                    </svg>
-                    <span>Evento</span>
-                  </button>
-                  <div className="viewer-layers-menu">
-                    <button
-                      type="button"
-                      className="viewer-map-btn viewer-map-btn--with-label"
-                      onClick={() => setFiltersOpen((open) => !open)}
-                      aria-expanded={filtersOpen}
-                      aria-controls="viewer-lane-filter-menu"
-                      aria-label="Capas semánticas"
-                      title="Capas"
-                    >
-                      <svg
-                        className="viewer-header-icon-svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
-                      >
-                        <path
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="m12 3 8 4.5-8 4.5-8-4.5L12 3Zm0 9 8-4.5M12 12 4 7.5M4 12l8 4.5 8-4.5M4 16.5l8 4.5 8-4.5"
-                        />
-                      </svg>
-                      <span>Capas</span>
-                    </button>
-                    {filtersOpen ? (
-                      <div
-                        id="viewer-lane-filter-menu"
-                        className="viewer-lane-filter-menu"
-                        role="group"
-                        aria-label="Visibilidad por carril semántico"
-                      >
-                        {EVENT_LANE_ORDER.map((laneId) => (
-                          <button
-                            key={laneId}
-                            type="button"
-                            className="viewer-lane-filter"
-                            aria-pressed={laneVisibility[laneId]}
-                            title={
-                              laneVisibility[laneId]
-                                ? `Ocultar carril ${LANE_UI[laneId].label}`
-                                : `Mostrar carril ${LANE_UI[laneId].label}`
-                            }
-                            style={
-                              {
-                                "--lane-chip-fg": LANE_UI[laneId].color,
-                              } as CSSProperties
-                            }
-                            onClick={() => toggleLaneVisibility(laneId)}
-                          >
-                            {LANE_UI[laneId].label}
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                  <a
-                    href={VIEWER_SOURCE_REPO_URL}
-                    className="viewer-github-link"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Código fuente en GitHub (se abre en una pestaña nueva)"
-                    title="Código en GitHub"
-                  >
-                    <svg
-                      className="viewer-github-icon"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path
-                        fill="currentColor"
-                        d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.113.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"
-                      />
-                    </svg>
-                  </a>
-                  <a
-                    href={SITE_INSTAGRAM_URL}
-                    className="viewer-instagram-link"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Instagram @hisctorictimelines (se abre en una pestaña nueva)"
-                    title="Instagram"
-                  >
-                    <svg
-                      className="viewer-instagram-icon"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path
-                        fill="currentColor"
-                        d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"
-                      />
-                    </svg>
-                  </a>
-                  <button
-                    type="button"
-                    className="viewer-help-btn"
-                    onClick={() => setHelpOpen(true)}
-                    aria-label="Atajos de teclado. Atajo: signo de interrogación"
-                    title="Atajos (?)"
-                  >
-                    ?
-                  </button>
-                  <button
-                    type="button"
-                    className="viewer-inicio-btn"
-                    onClick={() => {
-                      setHelpOpen(false);
-                      navigate("/");
-                    }}
-                  >
-                    Inicio
-                  </button>
-                  <button
-                    type="button"
-                    className="viewer-header-peek-toggle viewer-header-peek-toggle--embedded"
-                    onClick={() => setViewerHeaderCollapsed((c) => !c)}
-                    aria-expanded={true}
-                    aria-controls="viewer-toolbar-main"
-                    aria-label="Ocultar barra del visor"
-                    title="Ocultar encabezado"
-                  >
-                    <svg
-                      className="viewer-header-icon-svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M7 14l5-5 5 5"
-                      />
-                    </svg>
-                  </button>
-                </div>
-                </div>
-              </header>
-            </div>
-          )}
-        </div>
-
-        {viewerHeaderCollapsed && (
-          <button
-            type="button"
-            className="viewer-header-peek-toggle viewer-header-peek-toggle--floating viewer-header-peek-toggle--bar-hidden"
-            onClick={() => setViewerHeaderCollapsed((c) => !c)}
-            aria-expanded={false}
-            aria-label="Mostrar barra del visor"
-            title="Mostrar encabezado"
-          >
-            <svg
-              className="viewer-header-icon-svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
+        <header id="viewer-toolbar-main" className="viewer-toolbar" aria-label="Barra del visor">
+          <div className="viewer-toolbar-core">
+            <button
+              type="button"
+              className="viewer-toolbar-btn"
+              onClick={() => {
+                setIndexOpen((open) => {
+                  const next = !open;
+                  if (next) setDetailCollapsed(true);
+                  return next;
+                });
+              }}
+              aria-expanded={indexOpen}
+              aria-controls="viewer-index-panel"
+              aria-label={indexOpen ? "Ocultar índice" : "Mostrar índice"}
+              title={indexOpen ? "Ocultar índice" : "Índice"}
             >
-              <path
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M7 10l5 5 5-5"
-              />
-            </svg>
-          </button>
-        )}
+              <svg className="viewer-header-icon-svg" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" strokeWidth="2" />
+                <line x1="9" y1="3" x2="9" y2="21" stroke="currentColor" strokeWidth="2" />
+              </svg>
+            </button>
+
+            <div className="viewer-layers-menu">
+              <button
+                type="button"
+                className={`viewer-toolbar-btn${EVENT_LANE_ORDER.some((id) => !laneVisibility[id]) ? " viewer-toolbar-btn--active" : ""}`}
+                onClick={() => setFiltersOpen((open) => !open)}
+                aria-expanded={filtersOpen}
+                aria-controls="viewer-lane-filter-menu"
+                aria-label="Capas semánticas"
+                title="Capas"
+              >
+                <svg className="viewer-header-icon-svg" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="m12 3 8 4.5-8 4.5-8-4.5L12 3Zm0 9 8-4.5M12 12 4 7.5M4 12l8 4.5 8-4.5M4 16.5l8 4.5 8-4.5" />
+                </svg>
+              </button>
+              {filtersOpen ? (
+                <div
+                  id="viewer-lane-filter-menu"
+                  className="viewer-lane-filter-menu"
+                  role="group"
+                  aria-label="Visibilidad por carril semántico"
+                >
+                  {EVENT_LANE_ORDER.map((laneId) => (
+                    <button
+                      key={laneId}
+                      type="button"
+                      className="viewer-lane-filter"
+                      aria-pressed={laneVisibility[laneId]}
+                      title={
+                        laneVisibility[laneId]
+                          ? `Ocultar carril ${LANE_UI[laneId].label}`
+                          : `Mostrar carril ${LANE_UI[laneId].label}`
+                      }
+                      style={{ "--lane-chip-fg": LANE_UI[laneId].color } as CSSProperties}
+                      onClick={() => toggleLaneVisibility(laneId)}
+                    >
+                      {LANE_UI[laneId].label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <button
+              type="button"
+              className="viewer-toolbar-btn"
+              onClick={() => { setHelpOpen(false); navigate("/"); }}
+              title="Inicio"
+              aria-label="Inicio"
+            >
+              <svg className="viewer-header-icon-svg" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M3 12L12 3l9 9M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9" />
+              </svg>
+            </button>
+
+            <button
+              type="button"
+              className="viewer-toolbar-btn"
+              onClick={() => setHelpOpen(true)}
+              title="Ayuda (atajos de teclado)"
+              aria-label="Ayuda (atajos de teclado)"
+            >
+              <svg className="viewer-header-icon-svg" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" />
+                <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M9 9a3 3 0 115.2 2c-.5.5-1.2.9-1.7 1.4S12 13.5 12 14" />
+                <circle cx="12" cy="17.5" r="0.5" fill="currentColor" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+            </button>
+          </div>
+
+          <span className="viewer-toolbar-title" title={timelineTitle}>
+            {timelineTitle}
+          </span>
+
+          <div className="viewer-toolbar-secondary">
+              <button
+                type="button"
+                className="viewer-toolbar-btn viewer-toolbar-btn--with-label"
+                onClick={createTimelineCopy}
+                disabled={timelineApiStatus === "loading"}
+                aria-label="Crear una copia editable del timeline actual"
+                title="Crear copia"
+              >
+                <span>Copiar</span>
+              </button>
+
+              <button
+                type="button"
+                className="viewer-toolbar-btn viewer-toolbar-btn--with-label"
+                onClick={() => !previewMode && setEditorState({ kind: "create" })}
+                disabled={previewMode}
+                aria-label="Crear evento"
+                title={previewMode ? "No disponible en modo vista previa" : "Crear evento"}
+              >
+                <svg className="viewer-header-icon-svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+                </svg>
+                <span>Evento</span>
+              </button>
+
+              <div className="viewer-study-menu">
+                <button
+                  type="button"
+                  className="viewer-toolbar-btn"
+                  onClick={() => setStudyMenuOpen((open) => !open)}
+                  aria-expanded={studyMenuOpen}
+                  aria-haspopup="menu"
+                  aria-controls="viewer-study-menu"
+                  aria-label={`Modo de estudio: ${
+                    STUDY_MODE_OPTIONS.find((option) => option.id === studyMode)?.label ?? "Normal"
+                  }`}
+                  title="Modo de estudio"
+                >
+                  <StudyModeIcon mode={studyMode} />
+                </button>
+                {studyMenuOpen ? (
+                  <div
+                    id="viewer-study-menu"
+                    className="viewer-study-menu-popover"
+                    role="radiogroup"
+                    aria-label="Modo de estudio"
+                  >
+                    {STUDY_MODE_OPTIONS.map(({ id, label }) => (
+                      <button
+                        key={id}
+                        type="button"
+                        role="radio"
+                        aria-checked={studyMode === id}
+                        className={`viewer-study-menu-option${studyMode === id ? " viewer-study-menu-option--active" : ""}`.trim()}
+                        onClick={() => {
+                          setStudyMode(id);
+                          setStudyMenuOpen(false);
+                        }}
+                      >
+                        <StudyModeIcon mode={id} />
+                        <span>{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="viewer-theme-menu">
+                <button
+                  type="button"
+                  className="viewer-toolbar-btn"
+                  onClick={() => setThemeMenuOpen((open) => !open)}
+                  aria-expanded={themeMenuOpen}
+                  aria-haspopup="menu"
+                  aria-controls="viewer-theme-menu"
+                  aria-label={`Tema visual: ${
+                    THEME_MODE_OPTIONS.find((option) => option.id === themeMode)?.label ?? "Sistema"
+                  }`}
+                  title="Tema visual"
+                >
+                  <ThemeModeIcon mode={themeMode} />
+                </button>
+                {themeMenuOpen ? (
+                  <div
+                    id="viewer-theme-menu"
+                    className="viewer-theme-menu-popover"
+                    role="radiogroup"
+                    aria-label="Tema visual"
+                  >
+                    {THEME_MODE_OPTIONS.map(({ id, label }) => (
+                      <button
+                        key={id}
+                        type="button"
+                        role="radio"
+                        aria-checked={themeMode === id}
+                        className={`viewer-theme-menu-option${themeMode === id ? " viewer-theme-menu-option--active" : ""}`.trim()}
+                        onClick={() => {
+                          setThemeMode(id);
+                          setThemeMenuOpen(false);
+                        }}
+                      >
+                        <ThemeModeIcon mode={id} />
+                        <span>{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              {sel != null ? (
+                <button
+                  type="button"
+                  className="viewer-toolbar-btn"
+                  onClick={() => setDetailCollapsed((collapsed) => !collapsed)}
+                  aria-expanded={!detailCollapsed}
+                  aria-controls="viewer-detail-panel"
+                  aria-label={
+                    detailCollapsed
+                      ? "Expandir detalle seleccionado"
+                      : "Contraer detalle seleccionado"
+                  }
+                  title={detailCollapsed ? "Expandir detalle" : "Contraer detalle"}
+                >
+                  <svg className="viewer-header-icon-svg" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d={detailCollapsed ? "M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" : "M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"}
+                    />
+                  </svg>
+                </button>
+              ) : null}
+            </div>
+        </header>
 
         <div className="viewer-main">
         <div
@@ -2498,29 +2303,6 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="timeline-scale-overlay" aria-hidden>
-                <div className="timeline-scale-topline">
-                  <span className="timeline-scale-caption">Escala del eje</span>
-                  <div className="timeline-scale-label timeline-date">
-                    {scaleBarLabel}
-                  </div>
-                </div>
-                <div className="timeline-scale-rail-wrap">
-                  <div
-                    className="timeline-scale-rail"
-                    style={{ width: SCALE_BAR_PX }}
-                  />
-                  <div
-                    className="timeline-scale-ticks"
-                    style={{ width: SCALE_BAR_PX }}
-                  >
-                    <span />
-                    <span />
-                    <span />
-                    <span />
-                  </div>
-                </div>
-              </div>
           </div>
         </div>
       </section>
@@ -2533,6 +2315,8 @@ export default function App() {
               events={events}
               sel={sel}
               activePeriodForTimeline={activePeriodForTimeline}
+              timelineTitle={timelineTitle}
+              timelineRange={timelineRange}
               onSelectPeriod={(p) => {
                 setSel({ kind: "period", item: p });
                 if (viewerIsTabletViewport()) setIndexOpen(false);

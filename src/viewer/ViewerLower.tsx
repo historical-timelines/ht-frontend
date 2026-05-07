@@ -22,6 +22,8 @@ type ViewerIndexPanelProps = {
   events: TimelineEvent[];
   sel: Selection;
   activePeriodForTimeline: Period | null;
+  timelineTitle: string;
+  timelineRange: string;
   onSelectPeriod: (p: Period) => void;
   onSelectEvent: (e: TimelineEvent) => void;
   onClose: () => void;
@@ -89,6 +91,8 @@ export function ViewerIndexPanel({
   events,
   sel,
   activePeriodForTimeline,
+  timelineTitle,
+  timelineRange,
   onSelectPeriod,
   onSelectEvent,
   onClose,
@@ -129,6 +133,10 @@ export function ViewerIndexPanel({
       onClose={onClose}
     >
       <div className="viewer-index-panel__body">
+        <div className="viewer-index-timeline-header">
+          <strong className="viewer-index-timeline-title">{timelineTitle}</strong>
+          <span className="viewer-index-timeline-range timeline-date">{timelineRange}</span>
+        </div>
         <div
           className="viewer-index-tabs"
           role="tablist"
