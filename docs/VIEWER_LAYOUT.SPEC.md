@@ -46,10 +46,11 @@ En CSS, la fila 1 de `.viewer-main` es `auto`: altura según contenido del timel
 |------|-----|
 | `html.viewer-phase`, `body`, `#root` | Acotados al viewport; evitar scroll del documento. |
 | `.app--viewer` | Columna flex bajo `#root`. |
-| `.viewer-shell` | Columna principal; no scroll de “página entera”. |
-| `.viewer-main` | Grid: fila 1 `auto` (timeline), fila 2 `minmax(0,1fr)` (inferior). `min-height: 0` / `overflow: hidden` para que el `1fr` tenga altura definida. |
-| `.viewer-chart-wrap` | Fila 1; alineación acorde al contenido. |
-| `.viewer-lower` | Fila 2; `min-height: 0` para scroll en hijos. |
+| `.viewer-shell` | Columna flex principal; no scroll de “página entera”. |
+| `header.viewer-toolbar` | Barra compacta de navegación (`flex-shrink: 0`); altura `~2.5rem`. Zona core siempre visible; zona secondary colapsable con hamburguesa. |
+| `.viewer-main` | Resto del espacio (`flex: 1 1 auto`); contiene chart y overlays. |
+| `.viewer-chart-wrap` | Timeline como canvas; `height: 100%`. |
+| `.viewer-map-overlays` | `position: absolute; inset: 0`; paneles flotantes (índice, detalle, AI). |
 
 ### Caso límite (timeline muy alto)
 
