@@ -1,3 +1,36 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Tailwind tokens mapeados a los CSS vars del proyecto */
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--text);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--bg);
+  --color-secondary: var(--border);
+  --color-secondary-foreground: var(--text);
+  --color-muted: color-mix(in srgb, var(--bg) 70%, var(--surface));
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--surface);
+  --color-accent-foreground: var(--text);
+  --color-destructive: oklch(0.577 0.245 27.325);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--accent);
+  /* Tokens de dominio: líneas del tiempo */
+  --color-period-1: var(--period-1);
+  --color-period-2: var(--period-2);
+  --color-event: var(--event);
+  /* Tipografía */
+  --font-sans: Inter, system-ui, sans-serif;
+  --font-serif: "IBM Plex Serif", serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --radius: 0.5rem;
+}
+
 :root,
 html[data-theme="system"],
 html[data-theme="light"] {

@@ -1,0 +1,14 @@
+/* Mobile toolbar: hide secondary section, show "more" trigger */
+.viewer-toolbar-mobile-btn {
+  display: none;
+}
+
+@media (max-width: 47.9rem) {
+  .viewer-toolbar-secondary {
+    display: none !important;
+  }
+
+  .viewer-toolbar-mobile-btn {
+    display: flex;
+  }
+}
