@@ -1,5 +1,8 @@
+import { useState } from "react";
 import type { CSSProperties } from "react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { StudyMode } from "../../../causality";
+import "./toolbar-mobile.css";
 import {
   EVENT_LANE_ORDER,
   LANE_UI,
@@ -118,7 +121,14 @@ export default function Toolbar({
   onSelectThemeMode,
   onTogglePanels,
 }: ToolbarProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  function closeMobileMenu() {
+    setMobileMenuOpen(false);
+  }
+
   return (
+    <>
     <header id="viewer-toolbar-main" className="viewer-toolbar" aria-label="Barra del visor">
       <div className="viewer-toolbar-core">
         <button
@@ -191,6 +201,21 @@ export default function Toolbar({
           <svg className="viewer-header-icon-svg" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="2" />
             <line x1="16.5" y1="16.5" x2="21" y2="21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
+
+        {/* Mobile-only: opens bottom sheet with secondary actions */}
+        <button
+          type="button"
+          className="viewer-toolbar-btn viewer-toolbar-mobile-btn"
+          onClick={() => setMobileMenuOpen(true)}
+          aria-label="Más opciones"
+          title="Más opciones"
+        >
+          <svg className="viewer-header-icon-svg" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="5" cy="12" r="1.5" fill="currentColor" />
+            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+            <circle cx="19" cy="12" r="1.5" fill="currentColor" />
           </svg>
         </button>
       </div>
@@ -313,5 +338,116 @@ export default function Toolbar({
         </button>
       </div>
     </header>
+
+    {/* Mobile secondary actions sheet */}
+    <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+      <SheetContent side="bottom" className="px-4 pb-10 pt-2 rounded-t-2xl" style={{ background: "var(--surface)", color: "var(--text)", borderColor: "var(--border)" }}>
+        <SheetHeader className="mb-4">
+          <SheetTitle style={{ color: "var(--text)", fontFamily: "'IBM Plex Serif', serif", fontSize: "1rem" }}>
+            Opciones
+          </SheetTitle>
+        </SheetHeader>
+
+        <div className="flex flex-col gap-1">
+          {/* Filters */}
+          <div className="flex flex-col gap-1 pb-3 mb-1" style={{ borderBottom: "1px solid var(--border)" }}>
+            <span className="text-[0.65rem] font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>Carriles visibles</span>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {EVENT_LANE_ORDER.map((laneId) => (
+                <button
+                  key={laneId}
+                  type="button"
+                  className="viewer-lane-filter"
+                  aria-pressed={laneVisibility[laneId]}
+                  style={{ "--lane-chip-fg": LANE_UI[laneId].color } as CSSProperties}
+                  onClick={() => onToggleLane(laneId)}
+                >
+                  {LANE_UI[laneId].label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Study mode */}
+          <div className="flex flex-col gap-1 py-3 mb-1" style={{ borderBottom: "1px solid var(--border)" }}>
+            <span className="text-[0.65rem] font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>Modo de estudio</span>
+            <div className="flex gap-1.5 pt-1">
+              {STUDY_MODE_OPTIONS.map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={studyMode === id}
+                  className={`viewer-study-menu-option${studyMode === id ? " viewer-study-menu-option--active" : ""}`.trim()}
+                  onClick={() => { onSelectStudyMode(id); closeMobileMenu(); }}
+                >
+                  <StudyModeIcon mode={id} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Theme */}
+          <div className="flex flex-col gap-1 py-3 mb-1" style={{ borderBottom: "1px solid var(--border)" }}>
+            <span className="text-[0.65rem] font-bold uppercase tracking-widest" style={{ color: "var(--muted)" }}>Tema visual</span>
+            <div className="flex gap-1.5 pt-1">
+              {THEME_MODE_OPTIONS.map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="radio"
+                  aria-checked={themeMode === id}
+                  className={`viewer-theme-menu-option${themeMode === id ? " viewer-theme-menu-option--active" : ""}`.trim()}
+                  onClick={() => { onSelectThemeMode(id); closeMobileMenu(); }}
+                >
+                  <ThemeModeIcon mode={id} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col gap-2 pt-3">
+            <button
+              type="button"
+              className="viewer-toolbar-btn viewer-toolbar-btn--with-label"
+              style={{ width: "100%", height: "2.25rem", justifyContent: "flex-start", paddingLeft: "0.75rem" }}
+              onClick={() => { onOpenHelp(); closeMobileMenu(); }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                <circle cx="12" cy="12" r="10" />
+                <path d="M9 9a3 3 0 115.2 2c-.5.5-1.2.9-1.7 1.4S12 13.5 12 14" />
+                <circle cx="12" cy="17.5" r="0.5" fill="currentColor" strokeWidth="1.5" />
+              </svg>
+              <span>Ayuda / Atajos</span>
+            </button>
+            <button
+              type="button"
+              className="viewer-toolbar-btn viewer-toolbar-btn--with-label"
+              style={{ width: "100%", height: "2.25rem", justifyContent: "flex-start", paddingLeft: "0.75rem" }}
+              disabled={timelineApiLoading}
+              onClick={() => { onCreateCopy(); closeMobileMenu(); }}
+            >
+              <span>Crear copia editable</span>
+            </button>
+            <button
+              type="button"
+              className="viewer-toolbar-btn viewer-toolbar-btn--with-label"
+              style={{ width: "100%", height: "2.25rem", justifyContent: "flex-start", paddingLeft: "0.75rem" }}
+              disabled={previewMode}
+              onClick={() => { onCreateEvent(); closeMobileMenu(); }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              <span>Crear evento</span>
+            </button>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+    </>
   );
 }
