@@ -12,6 +12,6 @@ export function createTimelineRepo(): TimelineRepo {
   const base =
     apiBaseUrl === "local"
       ? new LocalStorageTimelineRepo()
-      : new HttpTimelineRepo(apiBaseUrl ?? DEFAULT_API_BASE_URL);
+      : new HttpTimelineRepo(apiBaseUrl || DEFAULT_API_BASE_URL);
   return new InCodeTimelineRepo(base);
 }

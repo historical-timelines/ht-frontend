@@ -75,7 +75,7 @@ const DEFAULT_API_BASE_URL = "https://ukpswhaxmg.us-east-1.awsapprunner.com";
 const EXECUTION_PLAN_POLLING_INTERVAL_MS = 5000;
 const apiBaseUrl = import.meta.env.VITE_TIMELINES_API_BASE_URL as string | undefined;
 const aiService =
-  apiBaseUrl === "local" ? null : new HttpAiService(apiBaseUrl ?? DEFAULT_API_BASE_URL);
+  apiBaseUrl === "local" ? null : new HttpAiService(apiBaseUrl || DEFAULT_API_BASE_URL);
 
 type PlanUiState = {
   sourceMessageId: string;
