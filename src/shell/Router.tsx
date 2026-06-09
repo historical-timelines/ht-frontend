@@ -5,9 +5,6 @@ import { createTimelineRepo, type TimelineSummary } from "../timelineEdition";
 import { LandingPage } from "./LandingPage";
 import { WelcomeScreen } from "./WelcomeScreen";
 
-// TODO: agregar campo `slug` en el backend. Si un nodo no tiene slug,
-// generarlo con IA en el idioma principal del sitio (actualmente: español).
-// Por ahora se usa el id como slug de URL.
 const timelineRepo = createTimelineRepo();
 
 function WelcomeRoute() {
@@ -24,13 +21,13 @@ function WelcomeRoute() {
       description: null,
       timeline: { periods: [], events: [] },
     });
-    navigate(`/${record.id}`);
+    navigate(`/${record.slug ?? record.id}`);
   }
 
   return (
     <WelcomeScreen
       timelines={timelines}
-      onSelectTimeline={(id) => navigate(`/${id}`)}
+      onSelectTimeline={(slugOrId) => navigate(`/${slugOrId}`)}
       onCreateTimeline={handleCreateTimeline}
     />
   );

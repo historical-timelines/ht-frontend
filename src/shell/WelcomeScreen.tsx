@@ -81,6 +81,11 @@ export function WelcomeScreen({ timelines, onSelectTimeline, onCreateTimeline }:
                         <span className="font-medium text-[0.95rem] text-foreground truncate">
                           {item.title}
                         </span>
+                        <span className="text-[0.7rem] text-muted-foreground/80 truncate">
+                          ID: {item.id} · Creada el {formatTimelineDate(item.createdAt)}
+                          {item.updatedAt.getTime() !== item.createdAt.getTime() &&
+                            ` · Actualizada el ${formatTimelineDate(item.updatedAt)}`}
+                        </span>
                         {item.description && (
                           <span className="text-[0.8rem] text-muted-foreground line-clamp-1">
                             {item.description}
@@ -90,7 +95,7 @@ export function WelcomeScreen({ timelines, onSelectTimeline, onCreateTimeline }:
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => onSelectTimeline(item.id)}
+                        onClick={() => onSelectTimeline(item.slug ?? item.id)}
                         className="shrink-0"
                       >
                         Ver
@@ -153,6 +158,14 @@ export function WelcomeScreen({ timelines, onSelectTimeline, onCreateTimeline }:
       </div>
     </div>
   );
+}
+
+function formatTimelineDate(d: Date): string {
+  return d.toLocaleDateString("es-AR", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function TimelineListSkeleton() {
