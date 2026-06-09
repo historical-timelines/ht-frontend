@@ -28,6 +28,7 @@ export type TimelineEditionResult = {
 
 export type TimelineSummary = {
   id: string;
+  slug?: string | null;
   title: string;
   description: string | null;
   createdAt: Date;

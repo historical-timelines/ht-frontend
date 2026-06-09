@@ -16,6 +16,7 @@ const defaultFetcher: Fetcher = (input, init) => globalThis.fetch(input, init);
 
 type TimelineSummaryWire = {
   id: string;
+  slug: string | null;
   title: string;
   description: string | null;
   created_at: string;
@@ -117,6 +118,7 @@ function timelineWriteBody(
 function timelineSummaryFromWire(payload: TimelineSummaryWire): TimelineSummary {
   return {
     id: payload.id,
+    slug: payload.slug ?? null,
     title: payload.title,
     description: payload.description,
     createdAt: new Date(payload.created_at),

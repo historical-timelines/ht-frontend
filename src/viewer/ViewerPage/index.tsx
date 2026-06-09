@@ -1503,7 +1503,7 @@ export default function ViewerPage() {
         description: timelineDescription,
         timeline,
       });
-      navigate(`/${record.id}`);
+      navigate(`/${record.slug ?? record.id}`);
     } catch (error) {
       console.error("Could not create timeline copy", error);
       setTimelineApiStatus("error");
