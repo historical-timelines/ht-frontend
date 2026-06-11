@@ -7,3 +7,5 @@
 **Layout y trabajo asistido:** [`AGENTS.md`](./AGENTS.md) — trampas del visor y enlaces a [`docs/VIEWER_LAYOUT.SPEC.md`](./docs/VIEWER_LAYOUT.SPEC.md), [`docs/TIMELINE_LAYOUT.SPEC.md`](./docs/TIMELINE_LAYOUT.SPEC.md) y [`docs/TEMPLATE.SPEC.md`](./docs/TEMPLATE.SPEC.md).
 
 **Storybook y scripts locales:** [`README.md`](./README.md#storybook) — `npm run storybook` y convención `*.stories.tsx`.
+
+**Gestión del proyecto:** [`AGENTS.md` — sección Project Management](./AGENTS.md) — links al workspace de Notion (Corcho, Tareas, Épicas, MVP, Marketing). Consultarlo antes de proponer tareas nuevas.
