@@ -78,6 +78,18 @@ This is intentional and matches the event-label placement model. CSS for `.axis`
 `.tick--axis-mark` must reserve height consistent with `--axis-max-lane` and
 `--axis-lane-step`, including the compact `.timeline-stack--compact .axis` variant.
 
+## Project Management — Notion Workspace
+
+The team uses Notion as the single source of truth for product and project context.
+
+- **Corcho (root):** https://app.notion.com/p/36e1013209da80eda701d16f2262c746 — mission, vision, links to everything else.
+- **Tareas (task board):** https://app.notion.com/p/36d1013209da805e9240e9f14131b074 — kanban board with statuses: Ideas, Backlog, En Progreso, Hecho.
+- **Épicas:** https://app.notion.com/p/36d1013209da807b92c7f8255f9830b7 — epics, each linked to their tasks.
+- **MVP epic:** https://app.notion.com/p/36d1013209da803dab2fe86b2a372118 — current focus; includes login, rate limiting, token purchase, subscription, landing page, onboarding modal, and contextual menu.
+- **Estrategia de Marketing:** https://app.notion.com/p/37a1013209da80ff8a2dfbc8122686e1 — marketing and monetization strategy.
+
+Before proposing new tasks or epics, check Tareas and Épicas to avoid duplicating existing work.
+
 ## Other Entry Points
 
 - New product or feature spec: copy [`docs/TEMPLATE.SPEC.md`](./docs/TEMPLATE.SPEC.md) to
