@@ -39,6 +39,7 @@ type AiConversationWire = {
 
 type TimelineWire = {
   id: string;
+  slug: string | null;
   title: string;
   description: string | null;
   created_at: string;
@@ -125,6 +126,7 @@ export class HttpAiService {
     );
     return {
       id: wire.id,
+      slug: wire.slug,
       title: wire.title,
       description: wire.description,
       createdAt: new Date(wire.created_at),

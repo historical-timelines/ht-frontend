@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { FEATURED_TIMELINES, type FeaturedTimeline } from "./featuredTimelines";
+import { AppNavbar } from "./AppNavbar";
+import { FEATURED_TIMELINES } from "./featuredTimelines";
 import { SITE_INSTAGRAM_URL } from "./siteLinks";
+import { TimelineCard } from "./TimelineCard";
+import { TIMELINE_CARD_STYLES } from "./timelineCardStyles";
 
 // SVG paint classes and pseudo-element effects that can't be expressed as Tailwind utilities
 const LANDING_STYLES = `
@@ -51,40 +52,18 @@ const LANDING_STYLES = `
     filter: drop-shadow(0 4px 24px color-mix(in srgb, var(--accent) 12%, transparent));
   }
 
-  .lp-timeline-card-link { display: block; text-decoration: none; color: inherit; height: 100%; }
-  .lp-timeline-card-interactive {
-    transition: transform 0.16s ease, box-shadow 0.18s ease, border-color 0.16s ease;
-  }
-  .lp-timeline-card-link:hover .lp-timeline-card-interactive {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 24px color-mix(in srgb, var(--accent) 14%, transparent);
-    border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
-  }
-
-  .lp-svg-period-1 { fill: #6f826d; fill-opacity: 0.18; }
-  .lp-svg-period-2 { fill: #9d8258; fill-opacity: 0.18; }
   .lp-svg-period-label { font-family: Inter, system-ui, sans-serif; font-size: 8px; font-weight: 600; }
   .lp-svg-period-1-text { fill: #6f826d; }
   .lp-svg-period-2-text { fill: #9d8258; }
   .lp-svg-year-label { font-family: Inter, system-ui, sans-serif; font-size: 8px; fill: #627083; }
-  .lp-svg-axis { stroke: #163457; stroke-opacity: 0.25; stroke-width: 2; }
-  .lp-svg-tick { stroke: #163457; stroke-opacity: 0.3; stroke-width: 1.5; }
   .lp-svg-causal-arc { stroke: #a7792d; stroke-opacity: 0.5; stroke-width: 1.5; stroke-dasharray: 5 3; }
   .lp-svg-causal-arrow { fill: #a7792d; fill-opacity: 0.5; }
-  .lp-svg-event { fill: #a7792d; }
-  .lp-svg-event-secondary { fill: #163457; fill-opacity: 0.55; }
   .lp-svg-tooltip { fill: #fff8ec; stroke: #d4c6ad; stroke-width: 1; }
   .lp-svg-tooltip-line { stroke: #d4c6ad; stroke-width: 1; }
   .lp-svg-tooltip-title { font-family: Inter, system-ui, sans-serif; font-size: 9px; font-weight: 600; fill: #163457; }
   .lp-svg-tooltip-sub { font-family: Inter, system-ui, sans-serif; font-size: 8px; fill: #627083; }
 
   @media (prefers-color-scheme: dark) {
-    .lp-svg-axis { stroke: #e3bd73; }
-    .lp-svg-tick { stroke: #e3bd73; }
-    .lp-svg-event { fill: #d5a74c; }
-    .lp-svg-event-secondary { fill: #e3bd73; fill-opacity: 0.5; }
-    .lp-svg-period-1 { fill: #5f735f; }
-    .lp-svg-period-2 { fill: #9b7544; }
     .lp-svg-period-1-text { fill: #7a9478; }
     .lp-svg-period-2-text { fill: #b08a5a; }
     .lp-svg-year-label { fill: #b9ad97; }
@@ -96,12 +75,6 @@ const LANDING_STYLES = `
     .lp-svg-tooltip-sub { fill: #b9ad97; }
   }
   html[data-theme="dark"] {
-    .lp-svg-axis { stroke: #e3bd73; }
-    .lp-svg-tick { stroke: #e3bd73; }
-    .lp-svg-event { fill: #d5a74c; }
-    .lp-svg-event-secondary { fill: #e3bd73; fill-opacity: 0.5; }
-    .lp-svg-period-1 { fill: #5f735f; }
-    .lp-svg-period-2 { fill: #9b7544; }
     .lp-svg-period-1-text { fill: #7a9478; }
     .lp-svg-period-2-text { fill: #b08a5a; }
     .lp-svg-year-label { fill: #b9ad97; }
@@ -117,9 +90,16 @@ const LANDING_STYLES = `
 export function LandingPage() {
   return (
     <>
+      <style>{TIMELINE_CARD_STYLES}</style>
       <style>{LANDING_STYLES}</style>
       <div className="min-h-screen bg-background text-foreground font-sans">
-        <LandingNavbar />
+        <AppNavbar
+          action={
+            <Button asChild size="sm">
+              <Link to="/app">Ingresar</Link>
+            </Button>
+          }
+        />
         <LandingHero />
         <FeaturedTimelinesSection />
         <HowItWorksSection />
@@ -127,20 +107,6 @@ export function LandingPage() {
         <LandingFooter />
       </div>
     </>
-  );
-}
-
-function LandingNavbar() {
-  return (
-    <nav className="sticky top-0 z-50 flex items-center justify-between px-4 md:px-8 py-3.5 bg-card border-b border-border shadow-sm">
-      <span className="font-serif font-semibold text-[1.05rem] text-primary tracking-tight leading-none">
-        <span className="hidden sm:inline">Historias en el Tiempo</span>
-        <span className="sm:hidden">HT</span>
-      </span>
-      <Button asChild size="sm">
-        <Link to="/app">Ingresar</Link>
-      </Button>
-    </nav>
   );
 }
 
@@ -200,37 +166,18 @@ function FeaturedTimelinesSection() {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
         {FEATURED_TIMELINES.map((t) => (
-          <TimelineCard key={t.slug} timeline={t} />
+          <TimelineCard
+            key={t.slug}
+            href={`/${t.slug}`}
+            seed={t.slug}
+            title={t.title}
+            description={t.description}
+            category={t.category}
+            yearRange={t.yearRange}
+          />
         ))}
       </div>
     </section>
-  );
-}
-
-function TimelineCard({ timeline }: { timeline: FeaturedTimeline }) {
-  const positions = eventPositionsForSeed(timeline.slug, 6);
-  return (
-    <Link to={`/${timeline.slug}`} className="lp-timeline-card-link">
-      <Card className="lp-timeline-card-interactive h-full overflow-hidden gap-0 py-0 rounded-xl">
-        <div className="bg-background border-b border-border px-2 pt-2 pb-1.5">
-          <MiniAxis positions={positions} />
-        </div>
-        <div className="flex flex-col gap-[0.45rem] px-5 py-4">
-          <Badge variant="secondary" className="self-start text-[0.68rem] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-            {timeline.category}
-          </Badge>
-          <span className="font-serif font-semibold text-[0.95rem] text-primary tracking-tight">
-            {timeline.yearRange}
-          </span>
-          <h3 className="font-serif font-semibold text-[1.15rem] text-foreground leading-tight m-0">
-            {timeline.title}
-          </h3>
-          <p className="text-[0.875rem] text-muted-foreground leading-[1.55] m-0">
-            {timeline.description}
-          </p>
-        </div>
-      </Card>
-    </Link>
   );
 }
 
@@ -328,59 +275,6 @@ function StepCard({ number, icon, title, desc }: StepCardProps) {
       <p className="text-[0.875rem] text-muted-foreground leading-relaxed m-0">{desc}</p>
     </div>
   );
-}
-
-// ── Mini axis (card thumbnail) ───────────────────────────────────────────────
-
-function MiniAxis({ positions }: { positions: number[] }) {
-  const width = 280;
-  const height = 70;
-  const midY = 42;
-  return (
-    <svg
-      viewBox={`0 0 ${width} ${height}`}
-      preserveAspectRatio="none"
-      className="block w-full"
-      style={{ height: 70 }}
-    >
-      <rect x="14" y="22" width={width / 2 - 24} height="18" rx="4" className="lp-svg-period-1" />
-      <rect x={width / 2 + 10} y="22" width={width / 2 - 24} height="18" rx="4" className="lp-svg-period-2" />
-      <line x1="10" y1={midY} x2={width - 10} y2={midY} className="lp-svg-axis" />
-      {[0, 0.5, 1].map((t, i) => {
-        const x = 10 + (width - 20) * t;
-        return (
-          <line key={i} x1={x} y1={midY - 4} x2={x} y2={midY + 4} className="lp-svg-tick" />
-        );
-      })}
-      {positions.map((p, i) => {
-        const x = 10 + (width - 20) * p;
-        return (
-          <circle
-            key={i}
-            cx={x}
-            cy={midY}
-            r="4"
-            className={i % 3 === 0 ? "lp-svg-event-secondary" : "lp-svg-event"}
-          />
-        );
-      })}
-    </svg>
-  );
-}
-
-function eventPositionsForSeed(seed: string, count: number): number[] {
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) {
-    h = (h << 5) - h + seed.charCodeAt(i);
-    h |= 0;
-  }
-  let state = Math.abs(h) || 1;
-  const out: number[] = [];
-  for (let i = 0; i < count; i++) {
-    state = (state * 9301 + 49297) % 233280;
-    out.push(0.08 + (state / 233280) * 0.84);
-  }
-  return out.sort((a, b) => a - b);
 }
 
 // ── Hero illustration ────────────────────────────────────────────────────────

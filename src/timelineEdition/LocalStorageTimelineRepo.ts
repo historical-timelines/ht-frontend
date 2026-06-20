@@ -3,6 +3,8 @@ import { timelineHistoriaArgentina } from "../../timelineHistoriaArgentina";
 import type {
   CreateTimelineInput,
   ReplaceTimelineInput,
+  TimelineListPage,
+  TimelineListQuery,
   TimelineRecord,
   TimelineRepo,
   TimelineSummary,
@@ -15,6 +17,7 @@ import {
 
 const DEFAULT_STORAGE_KEY = "argentina-timeline.timeline.v1";
 const LOCAL_TIMELINE_ID = "argentina-history";
+const LOCAL_TIMELINE_SLUG = "historia-argentina";
 const LOCAL_TIMELINE_TITLE = "Historia Argentina";
 const LOCAL_TIMELINE_CREATED_AT = new Date("2026-05-01T00:00:00.000Z");
 
@@ -24,8 +27,14 @@ export class LocalStorageTimelineRepo implements TimelineRepo {
     private readonly seedTimeline: Timeline = timelineHistoriaArgentina
   ) {}
 
-  async list(): Promise<TimelineSummary[]> {
-    return [this.summary()];
+  async list(params: TimelineListQuery = {}): Promise<TimelineListPage> {
+    const summary = this.summary();
+    const query = params.query?.trim().toLowerCase();
+    const matches =
+      !query ||
+      summary.title.toLowerCase().includes(query) ||
+      (summary.description ?? "").toLowerCase().includes(query);
+    return { items: matches ? [summary] : [], nextCursor: null };
   }
 
   async get(timelineId: string): Promise<TimelineRecord> {
@@ -80,6 +89,7 @@ export class LocalStorageTimelineRepo implements TimelineRepo {
   private summary(): TimelineSummary {
     return {
       id: LOCAL_TIMELINE_ID,
+      slug: LOCAL_TIMELINE_SLUG,
       title: LOCAL_TIMELINE_TITLE,
       description: "Copia local del timeline semilla",
       createdAt: new Date(LOCAL_TIMELINE_CREATED_AT),
@@ -94,6 +104,7 @@ export class LocalStorageTimelineRepo implements TimelineRepo {
   ): TimelineRecord {
     return {
       id: LOCAL_TIMELINE_ID,
+      slug: LOCAL_TIMELINE_SLUG,
       title,
       description,
       createdAt: new Date(LOCAL_TIMELINE_CREATED_AT),

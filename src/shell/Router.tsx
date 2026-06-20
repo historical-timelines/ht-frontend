@@ -5,15 +5,57 @@ import { createTimelineRepo, type TimelineSummary } from "../timelineEdition";
 import { LandingPage } from "./LandingPage";
 import { WelcomeScreen } from "./WelcomeScreen";
 
+// TODO: timelines sin slug (creadas antes de este campo, o vía rutas que no lo
+// generan) caen al id como URL. Generar slug con IA cuando falte.
 const timelineRepo = createTimelineRepo();
 
 function WelcomeRoute() {
   const navigate = useNavigate();
-  const [timelines, setTimelines] = useState<TimelineSummary[] | null>(null);
+  const [items, setItems] = useState<TimelineSummary[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    timelineRepo.list().then(setTimelines).catch(() => setTimelines([]));
-  }, []);
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    timelineRepo
+      .list({ query: searchQuery || undefined })
+      .then((page) => {
+        if (cancelled) return;
+        setItems(page.items);
+        setNextCursor(page.nextCursor);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setError("No se pudieron cargar las líneas de tiempo. Intentá de nuevo.");
+        setItems([]);
+        setNextCursor(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [searchQuery]);
+
+  async function handleLoadMore() {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const page = await timelineRepo.list({ query: searchQuery || undefined, cursor: nextCursor });
+      setItems((prev) => [...prev, ...page.items]);
+      setNextCursor(page.nextCursor);
+    } catch {
+      // Keep current items; the sentinel will retry once it's visible again.
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   async function handleCreateTimeline(title: string) {
     const record = await timelineRepo.create({
@@ -26,8 +68,14 @@ function WelcomeRoute() {
 
   return (
     <WelcomeScreen
-      timelines={timelines}
-      onSelectTimeline={(slugOrId) => navigate(`/${slugOrId}`)}
+      items={items}
+      loading={loading}
+      loadingMore={loadingMore}
+      error={error}
+      hasMore={nextCursor !== null}
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      onLoadMore={handleLoadMore}
       onCreateTimeline={handleCreateTimeline}
     />
   );

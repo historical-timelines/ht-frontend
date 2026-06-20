@@ -3,6 +3,7 @@ import { HttpTimelineRepo } from "./HttpTimelineRepo";
 
 const timelineResponse = {
   id: "argentina-history",
+  slug: "historia-argentina",
   title: "Historia Argentina",
   description: null,
   created_at: "2026-05-01T00:00:00Z",
@@ -30,20 +31,39 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 describe("HttpTimelineRepo", () => {
   it("lists timeline summaries using backend snake_case fields", async () => {
-    const fetcher = vi.fn(async () => jsonResponse([timelineResponse]));
+    const fetcher = vi.fn(async () =>
+      jsonResponse({ items: [timelineResponse], next_cursor: null })
+    );
     const repo = new HttpTimelineRepo("http://api.test", fetcher);
 
-    const summaries = await repo.list();
+    const page = await repo.list();
 
     expect(fetcher).toHaveBeenCalledWith(
       "http://api.test/timelines",
       expect.objectContaining({ headers: expect.objectContaining({ Accept: "application/json" }) })
     );
-    expect(summaries[0]).toMatchObject({
+    expect(page.nextCursor).toBeNull();
+    expect(page.items[0]).toMatchObject({
       id: "argentina-history",
+      slug: "historia-argentina",
       title: "Historia Argentina",
       createdAt: new Date("2026-05-01T00:00:00Z"),
     });
+  });
+
+  it("sends q/cursor/limit as query params and forwards next_cursor", async () => {
+    const fetcher = vi.fn(async () =>
+      jsonResponse({ items: [timelineResponse], next_cursor: "opaque-cursor" })
+    );
+    const repo = new HttpTimelineRepo("http://api.test", fetcher);
+
+    const page = await repo.list({ query: "argentina", cursor: "prev-cursor", limit: 5 });
+
+    expect(fetcher).toHaveBeenCalledWith(
+      "http://api.test/timelines?q=argentina&cursor=prev-cursor&limit=5",
+      expect.any(Object)
+    );
+    expect(page.nextCursor).toBe("opaque-cursor");
   });
 
   it("revives snapshot dates when fetching a timeline", async () => {

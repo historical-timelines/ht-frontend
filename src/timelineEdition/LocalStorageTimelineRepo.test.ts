@@ -83,4 +83,25 @@ describe("LocalStorageTimelineRepo", () => {
 
     expect(loaded.timeline.events[0]?.title).toBe("Evento");
   });
+
+  it("lists the single local timeline when it matches the query", async () => {
+    const storage = fakeStorage();
+    vi.stubGlobal("window", { localStorage: storage });
+    const repo = new LocalStorageTimelineRepo("test", timelineFixture());
+
+    const page = await repo.list({ query: "argentina" });
+
+    expect(page.items).toHaveLength(1);
+    expect(page.nextCursor).toBeNull();
+  });
+
+  it("returns no items when the query does not match", async () => {
+    const storage = fakeStorage();
+    vi.stubGlobal("window", { localStorage: storage });
+    const repo = new LocalStorageTimelineRepo("test", timelineFixture());
+
+    const page = await repo.list({ query: "xyzxyzxyz" });
+
+    expect(page.items).toEqual([]);
+  });
 });

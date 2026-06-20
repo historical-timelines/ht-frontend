@@ -6,6 +6,8 @@ import {
 import type {
   CreateTimelineInput,
   ReplaceTimelineInput,
+  TimelineListPage,
+  TimelineListQuery,
   TimelineRecord,
   TimelineRepo,
   TimelineSummary,
@@ -21,6 +23,11 @@ type TimelineSummaryWire = {
   description: string | null;
   created_at: string;
   updated_at: string;
+};
+
+type TimelineListWire = {
+  items: TimelineSummaryWire[];
+  next_cursor: string | null;
 };
 
 type TimelineWire = TimelineSummaryWire & {
@@ -45,9 +52,19 @@ export class HttpTimelineRepo implements TimelineRepo {
     this.baseUrl = baseUrl.replace(/\/+$/, "");
   }
 
-  async list(): Promise<TimelineSummary[]> {
-    const payload = await this.request<TimelineSummaryWire[]>("/timelines");
-    return payload.map(timelineSummaryFromWire);
+  async list(params: TimelineListQuery = {}): Promise<TimelineListPage> {
+    const search = new URLSearchParams();
+    if (params.query) search.set("q", params.query);
+    if (params.cursor) search.set("cursor", params.cursor);
+    if (params.limit) search.set("limit", String(params.limit));
+    const queryString = search.toString();
+    const payload = await this.request<TimelineListWire>(
+      `/timelines${queryString ? `?${queryString}` : ""}`
+    );
+    return {
+      items: payload.items.map(timelineSummaryFromWire),
+      nextCursor: payload.next_cursor,
+    };
   }
 
   async get(timelineId: string): Promise<TimelineRecord> {
@@ -118,7 +135,7 @@ function timelineWriteBody(
 function timelineSummaryFromWire(payload: TimelineSummaryWire): TimelineSummary {
   return {
     id: payload.id,
-    slug: payload.slug ?? null,
+    slug: payload.slug,
     title: payload.title,
     description: payload.description,
     createdAt: new Date(payload.created_at),
