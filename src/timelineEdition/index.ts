@@ -11,6 +11,8 @@ export type {
   ReplaceTimelineInput,
   TimelineEditionResult,
   TimelineEventDraft,
+  TimelineListPage,
+  TimelineListQuery,
   TimelineRecord,
   TimelineRepo,
   TimelineSummary,

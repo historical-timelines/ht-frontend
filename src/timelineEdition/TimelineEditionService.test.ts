@@ -3,6 +3,7 @@ import type { Timeline } from "../../types";
 import type {
   CreateTimelineInput,
   ReplaceTimelineInput,
+  TimelineListPage,
   TimelineRecord,
   TimelineRepo,
   TimelineSummary,
@@ -12,8 +13,8 @@ import { TimelineEditionService } from "./TimelineEditionService";
 class MemoryTimelineRepo implements TimelineRepo {
   constructor(private timeline: Timeline) {}
 
-  async list(): Promise<TimelineSummary[]> {
-    return [this.summary()];
+  async list(): Promise<TimelineListPage> {
+    return { items: [this.summary()], nextCursor: null };
   }
 
   async get(timelineId: string): Promise<TimelineRecord> {
@@ -51,6 +52,7 @@ class MemoryTimelineRepo implements TimelineRepo {
     const now = new Date("2026-05-01T00:00:00.000Z");
     return {
       id: "timeline-1",
+      slug: "timeline-1",
       title,
       description,
       createdAt: now,

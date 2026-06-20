@@ -28,7 +28,7 @@ export type TimelineEditionResult = {
 
 export type TimelineSummary = {
   id: string;
-  slug?: string | null;
+  slug: string | null;
   title: string;
   description: string | null;
   createdAt: Date;
@@ -51,8 +51,19 @@ export type ReplaceTimelineInput = {
   timeline: Timeline;
 };
 
+export type TimelineListQuery = {
+  query?: string;
+  cursor?: string | null;
+  limit?: number;
+};
+
+export type TimelineListPage = {
+  items: TimelineSummary[];
+  nextCursor: string | null;
+};
+
 export interface TimelineRepo {
-  list(): Promise<TimelineSummary[]>;
+  list(params?: TimelineListQuery): Promise<TimelineListPage>;
   get(timelineId: string): Promise<TimelineRecord>;
   create(input: CreateTimelineInput): Promise<TimelineRecord>;
   replace(timelineId: string, input: ReplaceTimelineInput): Promise<TimelineRecord>;

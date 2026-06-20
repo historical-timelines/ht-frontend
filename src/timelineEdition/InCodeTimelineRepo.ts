@@ -3,6 +3,8 @@ import { timelineHistoriaArgentina } from "../../timelineHistoriaArgentina";
 import type {
   CreateTimelineInput,
   ReplaceTimelineInput,
+  TimelineListPage,
+  TimelineListQuery,
   TimelineRecord,
   TimelineRepo,
   TimelineSummary,
@@ -16,6 +18,7 @@ const PLACEHOLDER_DESCRIPTION =
 function placeholder(id: string, title: string): TimelineRecord {
   return {
     id,
+    slug: id,
     title,
     description: PLACEHOLDER_DESCRIPTION,
     createdAt: FIXED_CREATED_AT,
@@ -27,6 +30,7 @@ function placeholder(id: string, title: string): TimelineRecord {
 const IN_CODE_RECORDS: Record<string, TimelineRecord> = {
   "historia-de-argentina": {
     id: "historia-de-argentina",
+    slug: "historia-de-argentina",
     title: "Historia de Argentina",
     description:
       "Independencia, organización del Estado y consolidación del país.",
@@ -77,13 +81,18 @@ function synthesizePlaceholder(slug: string): TimelineRecord {
 export class InCodeTimelineRepo implements TimelineRepo {
   constructor(private readonly underlying: TimelineRepo) {}
 
-  async list(): Promise<TimelineSummary[]> {
-    const upstream = await this.underlying
-      .list()
-      .catch(() => [] as TimelineSummary[]);
-    const seen = new Set(upstream.map((s) => s.id));
+  async list(params: TimelineListQuery = {}): Promise<TimelineListPage> {
+    const page = await this.underlying
+      .list(params)
+      .catch(() => ({ items: [], nextCursor: null }) as TimelineListPage);
+    // The hardcoded placeholders are only injected on the first unfiltered page —
+    // appending them on later pages risks duplicating an id the backend already
+    // returned earlier in the same listing.
+    const isFirstUnfilteredPage = !params.query && !params.cursor;
+    if (!isFirstUnfilteredPage) return page;
+    const seen = new Set(page.items.map((s) => s.id));
     const extras = IN_CODE_SUMMARIES.filter((s) => !seen.has(s.id));
-    return [...upstream, ...extras];
+    return { items: [...page.items, ...extras], nextCursor: page.nextCursor };
   }
 
   async get(timelineId: string): Promise<TimelineRecord> {
